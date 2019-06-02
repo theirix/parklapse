@@ -34,9 +34,9 @@ def create_app():
     app.register_blueprint(bp)
 
     # photo service
-    if not app.config.get('PHOTO_STORAGE_PATH', None):
-        raise RuntimeError('No PHOTO_STORAGE_PATH env var specified')
-    video_service = VideoService(app.config['PHOTO_STORAGE_PATH'])
+    if not app.config.get('RAW_CAPTURE_PATH', None):
+        raise RuntimeError('No env var specified')
+    video_service = VideoService(app.config['RAW_CAPTURE_PATH'])
 
     # exception handlers
     for code in werkzeug.exceptions.default_exceptions:
