@@ -13,8 +13,9 @@ celery_app.config_from_object(Config)
 @celery_app.on_after_configure.connect
 def setup_periodic_tasks(sender, **kwargs):
     print('Setup tasks')
-    from .tasks import collect_stats_task
-    sender.add_periodic_task(30.0, collect_stats_task.s(), name='collect_stats')
+    import app.tasks
+    sender.add_periodic_task(30.0, app.tasks.collect_stats_task.s(), name='collect_stats')
+    sender.add_periodic_task(60.0, app.tasks.check_timelapse_task.s(), name='check_timelapse_task')
 
 
 if __name__ == '__main__':

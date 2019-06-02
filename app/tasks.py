@@ -8,7 +8,9 @@ from app import VideoService
 from .celery import celery_app
 
 redis_app = Redis()
-video_service = VideoService(celery_app.conf['RAW_CAPTURE_PATH'])
+video_service = VideoService(celery_app.conf['RAW_CAPTURE_PATH'],
+                             celery_app.conf['TIMELAPSE_PATH'],
+                             celery_app.conf['TMP_PATH'], )
 
 
 @celery_app.task
@@ -33,3 +35,11 @@ def collect_stats_task():
 
     stats = {k: v for k, v in stats.items() if v is not None}
     redis_app.set('PARKLAPSE_STATS', json.dumps(stats))
+
+
+@celery_app.task(ignore_result=True)
+def check_timelapse_task():
+    logger = get_task_logger(check_timelapse_task.name)
+    logger.info("Called check_timelapse_task")
+
+    # video_service.check_timelapses()

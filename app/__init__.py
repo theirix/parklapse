@@ -36,7 +36,6 @@ def create_app():
     # photo service
     if not app.config.get('RAW_CAPTURE_PATH', None):
         raise RuntimeError('No env var specified')
-    video_service = VideoService(app.config['RAW_CAPTURE_PATH'])
 
     # exception handlers
     for code in werkzeug.exceptions.default_exceptions:
