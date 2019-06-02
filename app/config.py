@@ -6,3 +6,4 @@ class Config(metaclass=MetaFlaskEnv):
     TESTING = False
     SECRET_KEY = 'secret'
     RAW_CAPTURE_PATH = None
+    REDIS_URL = 'redis://localhost:6379'
