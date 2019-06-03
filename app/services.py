@@ -104,7 +104,7 @@ class VideoService:
         dt, _ = self._parse_timelapse_to_date_and_slot(files[-1])
         return dt
 
-    def slot_to_timelapse(self, date: datetime.date, slot: int) -> Optional[str]:
+    def get_timelapses_for_slot(self, date: datetime.date, slot: int) -> Optional[str]:
         files = sorted([file for file
                         in glob.glob(self.timelapse_path + '/timelapse-slots-*.mp4')
                         if os.path.isfile(file) and
@@ -113,6 +113,17 @@ class VideoService:
             return None
         if len(files) > 1:
             logger.warning(f"Multiple files matching slot {slot} and date {date.isoformat()} found")
+        return files[0]
+
+    def get_timelapses_for_date(self, date: datetime.date) -> Optional[str]:
+        files = sorted([file for file
+                        in glob.glob(self.timelapse_path + '/timelapse-slots-*.mp4')
+                        if os.path.isfile(file) and
+                        self._parse_timelapse_to_date_and_slot(file)[0] == date])
+        if not files:
+            return None
+        if len(files) > 1:
+            logger.warning(f"Multiple files matching date {date.isoformat()} found")
         return files[0]
 
     @staticmethod

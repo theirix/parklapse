@@ -77,7 +77,24 @@ def timelapses_hourly(date, slot):
         raise werkzeug.exceptions.BadRequest("Wrong date passed, should be YYYYMMDD")
     if not slot or slot < 1 or slot > 8:
         raise werkzeug.exceptions.BadRequest("Wrong slot, should be in [1;8]")
-    filepath = video_service.slot_to_timelapse(dt, slot)
+    filepath = video_service.get_timelapses_for_slot(dt, slot)
+    if not filepath:
+        raise werkzeug.exceptions.NotFound("Timelapse not found")
+    current_app.logger.info(f"Found timelapse at {filepath}")
+    location = '{}/{}'.format(current_app.config['TIMELAPSES_URL_PREFIX'].rstrip('/'),
+                              os.path.basename(filepath))
+    return redirect(location=location, code=302)
+
+
+@bp.route('/timelapses/<string:date>/daily', methods=['GET'])
+def timelapses_daily(date):
+    date_str = bleach.clean(date)
+    current_app.logger.info(f"Request timelapses_daily for date {date_str}")
+    try:
+        dt = datetime.datetime.strptime(date_str, "%Y%m%d").date()
+    except ValueError:
+        raise werkzeug.exceptions.BadRequest("Wrong date passed, should be YYYYMMDD")
+    filepath = video_service.get_timelapses_for_date(dt)
     if not filepath:
         raise werkzeug.exceptions.NotFound("Timelapse not found")
     current_app.logger.info(f"Found timelapse at {filepath}")
