@@ -6,7 +6,7 @@ import bleach
 import werkzeug.exceptions
 from flask import jsonify, Blueprint, current_app, request, redirect
 
-from app import redis_app, video_service
+from app import redis_app, video_service, limiter
 
 bp = Blueprint('api', __name__, url_prefix='/api')
 
@@ -25,6 +25,7 @@ def str_to_bool(value: str) -> bool:
 
 
 @bp.route('/health', methods=['GET'])
+@limiter.exempt
 def health():
     return jsonify(status='ok', debug=current_app.config.get('DEBUG', False))
 
@@ -38,6 +39,7 @@ def stats():
 
 
 @bp.route('/hello', methods=['POST'])
+@limiter.limit("1 per minute")
 def hello():
     from app.tasks import hello_task
     res = hello_task.delay().get()

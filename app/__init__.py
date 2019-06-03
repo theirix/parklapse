@@ -1,6 +1,7 @@
 import logging
 import sys
 
+import flask_limiter.util
 import werkzeug.exceptions
 from flask import Flask, jsonify
 from redis import Redis
@@ -14,11 +15,10 @@ redis_app = Redis()
 
 video_service = VideoService()
 
-
-# limiter = flask_limiter.Limiter(
-#     key_func=flask_limiter.util.get_remote_address,
-#     default_limits=[],
-# )
+limiter = flask_limiter.Limiter(
+    key_func=flask_limiter.util.get_remote_address,
+    default_limits=["10 per minute"],
+)
 
 
 # Error handlers
@@ -64,6 +64,6 @@ def create_app():
                               app.config['TIMELAPSE_PATH'],
                               app.config['TMP_PATH'])
 
-    # limiter.init_app(app)
+    limiter.init_app(app)
 
     return app
