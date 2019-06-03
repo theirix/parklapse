@@ -218,7 +218,7 @@ class VideoService:
 
         command = [os.path.join(self.local_bin(), 'ffmpeg')]
         command.extend(['-hide_banner',
-                        '-nostdin'
+                        '-nostdin',
                         '-i',
                         in_video_path])
         command_str = f"-vf setpts=PTS/{speedup} -r {fps} -c:v libx264 -preset slow " + \

@@ -48,4 +48,4 @@ def check_timelapse_task():
     logger = get_task_logger(check_timelapse_task.name)
     logger.info("Called check_timelapse_task")
 
-    video_service.check_timelapses(False, False)
+    video_service.check_timelapses(celery_app.conf['READ_ONLY'], False)
