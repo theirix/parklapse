@@ -28,13 +28,13 @@ class VideoService:
         if not self.timelapse_path or not os.path.isdir(self.timelapse_path):
             raise RuntimeError('Bad timelapse_path')
 
-    def _enumerate_files(self) -> list:
+    def _enumerate_raw_files(self) -> list:
         return list(sorted(file for file
                            in glob.glob(self.raw_capture_path + '/*/*.mp4')
                            if os.path.isfile(file)))
 
     def raw_count(self):
-        return len(self._enumerate_files())
+        return len(self._enumerate_raw_files())
 
     @staticmethod
     def _parse_raw_dt(fname: str) -> datetime.datetime:
@@ -49,24 +49,24 @@ class VideoService:
         # timelapse-slots-20190602_3.mp4
         m = re.match(r'timelapse-slots-(\d+)_(\d)\.mp4', os.path.basename(fname))
         if not m:
-            raise ValueError('Wrong filename')
-        dt = datetime.datetime.strptime(m.group(1), "%Y%m%d").date()
+            raise ValueError('Wrong filename ' + fname)
+        date = datetime.datetime.strptime(m.group(1), "%Y%m%d").date()
         slot = int(m.group(2))
-        logger.debug(f"Res: {dt!r} {slot!r}")
-        return dt, slot
+        logger.debug(f"Res: {date!r} {slot!r}")
+        return date, slot
 
     @staticmethod
     def _parse_timelapse_daily_to_date(fname: str) -> datetime.date:
         # timelapse-daily-20190602.mp4
         m = re.match(r'timelapse-daily-(\d+)\.mp4', os.path.basename(fname))
         if not m:
-            raise ValueError('Wrong filename')
+            raise ValueError('Wrong filename ' + fname)
         dt = datetime.datetime.strptime(m.group(1), "%Y%m%d").date()
         logger.debug(f"Res: {dt!r}")
         return dt
 
     def raw_last_at(self) -> Optional[datetime.datetime]:
-        files = self._enumerate_files()
+        files = self._enumerate_raw_files()
         if len(files) < 2:
             return None
         last_completed_file = files[-2]
@@ -141,10 +141,23 @@ class VideoService:
             logger.info(f"Video size: {os.stat(tmp_timelapse_video_path).st_size // (1024 * 1024)} MiB")
             shutil.move(tmp_timelapse_video_path, self.timelapse_path)
 
+    def _make_daily_timelapse_video(self, timelapse_files: list, timelapse_video_name: str):
+        with tempfile.TemporaryDirectory(prefix='parklapse-daily-', dir=self.tmp_path) as tmpdirname:
+            tmp_video_path = os.path.join(tmpdirname, timelapse_video_name)
+            if os.path.isfile(tmp_video_path):
+                logger.warning(f'Removing existing target {tmp_video_path}')
+                os.remove(tmp_video_path)
+
+            self._compose_concat_video(timelapse_files, tmp_video_path)
+            logger.info(f"Got composed video path: {tmp_video_path}")
+
+            logger.info(f"Video size: {os.stat(tmp_video_path).st_size // (1024 * 1024)} MiB")
+            shutil.move(tmp_video_path, self.timelapse_path)
+
     def _deduce_slot_files(self, dt: datetime.datetime, slot: int) -> Optional[list]:
-        slot_files = [file for file in self._enumerate_files() if
-                      self._parse_raw_dt(file).date() == dt.date() and
-                      self._timelapse_slot(self._parse_raw_dt(file)) == slot]
+        slot_files = sorted([file for file in self._enumerate_raw_files() if
+                             self._parse_raw_dt(file).date() == dt.date() and
+                             self._timelapse_slot(self._parse_raw_dt(file)) == slot])
         if len(slot_files) < 1:
             logger.info("Nothing to do")
             return None
@@ -152,59 +165,29 @@ class VideoService:
             logger.info(" - file " + file)
         return slot_files
 
+    def _deduce_timelapses_for_day(self, date: datetime.date) -> Optional[list]:
+        timelapse_files = sorted([file for file in
+                                  glob.glob(self.timelapse_path + '/timelapse-slots-*.mp4')
+                                  if os.path.isfile(file) and
+                                  self._parse_timelapse_to_date_and_slot(file)[0] == date])
+        if len(timelapse_files) < 1:
+            logger.info("Nothing to do")
+            return None
+        for file in timelapse_files:
+            logger.info(" - file " + file)
+        return timelapse_files
+
     def produce_timelapse(self, dt: datetime.datetime, slot: int, read_only: bool, random_failure: bool) -> bool:
         # Returns True if timelapse was actually generated
+        logger.info(f"Creating timelapse for date {dt.isoformat()} and slot {slot}")
         timelapse_video_base = self._make_timelapse_video_base(dt, slot)
+
         timelapse_video_name = timelapse_video_base + '.mp4'
         timelapse_err_name = timelapse_video_base + '.err'
         try:
-            logger.info(f"Creating timelapse for date {dt.isoformat()} and slot {slot}")
             logger.info(f"Video name would be {timelapse_video_name}")
             if os.path.isfile(os.path.join(self.timelapse_path, timelapse_video_name)):
                 logger.info(f"Target video already exists, skipping")
-                return False
-
-            slot_files = self._deduce_slot_files(dt, slot)
-            if not slot_files:
-                logger.info("Nothing to do")
-                return False
-
-            if os.path.isfile(os.path.join(self.timelapse_path, timelapse_err_name)):
-                os.remove(os.path.join(self.timelapse_path, timelapse_err_name))
-                logger.info(f"Error file for this video exists, try to generate again")
-
-            if random_failure and slot == 2:
-                raise RuntimeError('Random error!')
-
-            if not read_only:
-                # self._make_fake_video(timelapse_video_name)
-                self._make_timelapse_video(slot_files, slot, timelapse_video_name)
-
-            return True
-        except Exception as e:
-            logger.error(str(e))
-            logger.exception(e)
-            with open(os.path.join(self.timelapse_path, timelapse_err_name), 'wt') as f:
-                f.write(datetime.datetime.now(datetime.timezone.utc).isoformat() + "\n")
-                f.write(f"Video cannot be generated\n")
-                f.write("Error: " + str(e) + "\n")
-
-    def produce_daily_timelapse(self, dt: datetime.date, read_only: bool, random_failure: bool) -> bool:
-        # Returns True if timelapse was actually generated
-        timelapse_video_base = self._make_timelapse_daily_video_base(dt)
-        timelapse_video_name = timelapse_video_base + '.mp4'
-        timelapse_err_name = timelapse_video_base + '.err'
-        try:
-            logger.info(f"Creating timelapse for day date {dt.isoformat()}")
-            logger.info(f"Video name would be {timelapse_video_name}")
-            if os.path.isfile(os.path.join(self.timelapse_path, timelapse_video_name)):
-                logger.info(f"Target video already exists, skipping")
-                return False
-
-            # slot_files = self._deduce_slot_files(dt, slot)
-            slot_files = []
-            if not slot_files:
-                logger.info("Nothing to do")
                 return False
 
             if os.path.isfile(os.path.join(self.timelapse_path, timelapse_err_name)):
@@ -214,10 +197,54 @@ class VideoService:
             if random_failure:
                 raise RuntimeError('Random error!')
 
+            # specific code
+            slot_files = self._deduce_slot_files(dt, slot)
+            if not slot_files:
+                logger.info("Nothing to do")
+                return False
+
             if not read_only:
-                # self._make_fake_video(timelapse_video_name)
-                # self._make_timelapse_video(slot_files, slot, timelapse_video_name)
-                pass
+                self._make_timelapse_video(slot_files, slot, timelapse_video_base + '.mp4')
+                return True
+
+        except Exception as e:
+            logger.error(str(e))
+            logger.exception(e)
+            with open(os.path.join(self.timelapse_path, timelapse_err_name), 'wt') as f:
+                f.write(datetime.datetime.now(datetime.timezone.utc).isoformat() + "\n")
+                f.write(f"Video cannot be generated\n")
+                f.write("Error: " + str(e) + "\n")
+
+    def produce_daily_timelapse(self, date: datetime.date, read_only: bool, random_failure: bool) -> bool:
+        # Returns True if timelapse was actually generated
+        logger.info(f"Creating timelapse for day date {date.isoformat()}")
+        timelapse_video_base = self._make_timelapse_daily_video_base(date)
+
+        timelapse_video_name = timelapse_video_base + '.mp4'
+        timelapse_err_name = timelapse_video_base + '.err'
+        try:
+            logger.info(f"Video name would be {timelapse_video_name}")
+            if os.path.isfile(os.path.join(self.timelapse_path, timelapse_video_name)):
+                logger.info(f"Target video already exists, skipping")
+                return False
+
+            if os.path.isfile(os.path.join(self.timelapse_path, timelapse_err_name)):
+                os.remove(os.path.join(self.timelapse_path, timelapse_err_name))
+                logger.info(f"Error file for this video exists, try to generate again")
+
+            if random_failure:
+                raise RuntimeError('Random error!')
+
+            # specific code
+
+            timelapse_files = sorted(self._deduce_timelapses_for_day(date))
+            if not timelapse_files:
+                logger.info("Nothing to do")
+                return False
+
+            if not read_only:
+                self._make_daily_timelapse_video(timelapse_files, timelapse_video_name)
+                return True
 
             return True
         except Exception as e:
@@ -288,7 +315,7 @@ class VideoService:
         logger.info("Succeed")
 
     def check_timelapses(self, read_only: bool, random_failure: bool):
-        files = self._enumerate_files()
+        files = self._enumerate_raw_files()
         if len(files) < 2:
             return
 
@@ -312,6 +339,7 @@ class VideoService:
 
         # run through days
         generated_daily_count = 0
+        days.remove(datetime.datetime.now().date())
         for day in days:
             if self.produce_daily_timelapse(day, read_only, random_failure):
                 generated_daily_count += 1
