@@ -25,16 +25,20 @@ def collect_stats_task():
     logger.info("Called collect_stats_task")
     stats = dict()
     stats['alive'] = True
-    stats['last'] = datetime.datetime.now().replace(microsecond=0).isoformat()
+    stats['stats_at'] = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
     try:
         stats['raw_count'] = video_service.raw_count()
         stats['raw_last_at'] = video_service.raw_last_at().replace(microsecond=0).isoformat()
+        stats['timelapses_success_count'] = video_service.timelapses_count()
+        stats['timelapses_error_count'] = video_service.timelapses_error_count()
+        stats['timelapse_last_file'] = video_service.timelapse_last_file()
+        stats['timelapse_last_at'] = video_service.timelapse_last_at().isoformat()
     except Exception as e:
         logger.error(e)
         stats['error'] = str(e)
 
     stats = {k: v for k, v in stats.items() if v is not None}
-    redis_app.set('PARKLAPSE_STATS', json.dumps(stats))
+    redis_app.set('parklapse.stats', json.dumps(stats))
 
 
 @celery_app.task(ignore_result=True)
@@ -42,4 +46,4 @@ def check_timelapse_task():
     logger = get_task_logger(check_timelapse_task.name)
     logger.info("Called check_timelapse_task")
 
-    # video_service.check_timelapses()
+    video_service.check_timelapses(False, False)

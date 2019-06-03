@@ -4,6 +4,7 @@ import sys
 import werkzeug.exceptions
 from flask import Flask, jsonify
 
+from app.api import video_service
 from app.config import Config
 from app.services import VideoService
 
@@ -44,5 +45,9 @@ def create_app():
     app.errorhandler(Exception)(errhandler_universal_json)
 
     app.logger.info("Starting app")
+
+    video_service.init_config(app.config['RAW_CAPTURE_PATH'],
+                              app.config['TIMELAPSE_PATH'],
+                              app.config['TMP_PATH'])
 
     return app

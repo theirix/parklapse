@@ -9,3 +9,4 @@ class Config(metaclass=MetaFlaskEnv):
     TIMELAPSE_PATH = None
     TMP_PATH = None
     REDIS_URL = 'redis://localhost:6379'
+    TIMELAPSES_URL_PREFIX = '/data/timelapses/'
