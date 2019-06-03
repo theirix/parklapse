@@ -70,7 +70,7 @@ def create_app():
 
     cors_resources = {r"/api/health": {"origins": "*"}}
     if app.config['CORS_ORIGIN']:
-        cors_resources[r"/api/*"] = {"origins": ','.split(app.config['CORS_ORIGIN'])}
+        cors_resources[r"/api/*"] = {"origins": [s.strip() for s in app.config['CORS_ORIGIN'].split(',')]}
     else:
         cors_resources[r"/api/*"] = {"origins": "*"}
     app.logger.info("CORS configuration: " + repr(cors_resources))
