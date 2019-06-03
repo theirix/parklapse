@@ -250,3 +250,9 @@ class VideoService:
 
         logger.info(f"Check done, generated {generated_count}, total slots checked {len(slots)}")
         logger.info(f"Stats: success={self.timelapses_count()} errors={self.timelapses_error_count()}")
+
+    def provide_timelapses(self) -> list:
+        return [(file, *self._parse_timelapse_to_date_and_slot(file))
+                for file
+                in sorted(glob.glob(self.timelapse_path + '/*.mp4'))
+                if os.path.isfile(file)]

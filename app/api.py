@@ -58,6 +58,14 @@ def generate():
     return jsonify(status='ok')
 
 
+@bp.route('/timelapses', methods=['GET'])
+def timelapses():
+    res = {}
+    for file, dt, slot in video_service.provide_timelapses():
+        res.setdefault(dt.strftime("%Y%m%d"), []).append(slot)
+    return jsonify(res)
+
+
 @bp.route('/timelapses/<string:date>/hourly/<int:slot>', methods=['GET'])
 def timelapses_hourly(date, slot):
     date_str = bleach.clean(date)
@@ -71,7 +79,7 @@ def timelapses_hourly(date, slot):
     filepath = video_service.slot_to_timelapse(dt, slot)
     if not filepath:
         raise werkzeug.exceptions.NotFound("Timelapse not found")
-    current_app.logger.info("Found timelapse at {filepath}")
+    current_app.logger.info(f"Found timelapse at {filepath}")
     location = '{}/{}'.format(current_app.config['TIMELAPSES_URL_PREFIX'].rstrip('/'),
                               os.path.basename(filepath))
     return redirect(location=location, code=302)
