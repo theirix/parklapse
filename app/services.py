@@ -135,11 +135,6 @@ class VideoService:
             return None
         for file in slot_files:
             logger.info(" - file " + file)
-        # TODO debugging
-        if True and slot_files:
-            slot_files = [slot_files[0]]
-            if len(slot_files) > 1:
-                slot_files.append(slot_files[-1])
         return slot_files
 
     def produce_timelapse(self, dt: datetime.datetime, slot: int, read_only: bool, random_failure: bool) -> bool:
