@@ -70,9 +70,10 @@ def create_app():
 
     cors_resources = {r"/api/health": {"origins": "*"}}
     if app.config['CORS_ORIGIN']:
-        cors_resources[r"/api/*"] = {"origins": app.config['CORS_ORIGIN']}
+        cors_resources[r"/api/*"] = {"origins": ','.split(app.config['CORS_ORIGIN'])}
     else:
         cors_resources[r"/api/*"] = {"origins": "*"}
+    app.logger.info("CORS configuration: " + repr(cors_resources))
     cors.init_app(app, resources=cors_resources)
 
     logging.getLogger('flask_cors').level = logging.DEBUG
