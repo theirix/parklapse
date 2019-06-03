@@ -11,3 +11,4 @@ class Config(metaclass=MetaFlaskEnv):
     REDIS_URL = 'redis://localhost:6379'
     TIMELAPSES_URL_PREFIX = '/'
     CORS_ORIGIN = None
+    READ_ONLY = True

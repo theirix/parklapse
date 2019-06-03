@@ -142,7 +142,7 @@ class VideoService:
                 slot_files.append(slot_files[-1])
         return slot_files
 
-    def produce_timelapse(self, dt: datetime.datetime, slot: int, preview: bool, random_failure: bool) -> bool:
+    def produce_timelapse(self, dt: datetime.datetime, slot: int, read_only: bool, random_failure: bool) -> bool:
         # Returns True if timelapse was actually generated
         timelapse_video_base = self._make_timelapse_video_base(dt, slot)
         timelapse_video_name = timelapse_video_base + '.mp4'
@@ -166,9 +166,8 @@ class VideoService:
             if random_failure and slot == 2:
                 raise RuntimeError('Random error!')
 
-            if preview:
-                self._make_fake_video(timelapse_video_name)
-            else:
+            if not read_only:
+                # self._make_fake_video(timelapse_video_name)
                 self._make_timelapse_video(slot_files, slot, timelapse_video_name)
 
             return True
@@ -235,7 +234,7 @@ class VideoService:
             raise RuntimeError('Recode failed ' + str(res.stderr.decode('latin-1')))
         logger.info("Succeed")
 
-    def check_timelapses(self, preview: bool, random_failure: bool):
+    def check_timelapses(self, read_only: bool, random_failure: bool):
         files = self._enumerate_files()
         if len(files) < 2:
             return
@@ -249,7 +248,7 @@ class VideoService:
         while dt <= last_dt:
             slot = self._timelapse_slot(dt)
             slots.add(slot)
-            if self.produce_timelapse(dt, self._timelapse_slot(dt), preview, random_failure):
+            if self.produce_timelapse(dt, self._timelapse_slot(dt), read_only, random_failure):
                 generated_count += 1
 
             dt = dt + datetime.timedelta(hours=1)
