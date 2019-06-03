@@ -5,7 +5,7 @@ from celery.utils.log import get_task_logger
 from redis import Redis
 
 from app import VideoService
-from .celery import celery_app
+from app.celery import celery_app
 
 redis_app = Redis()
 video_service = VideoService(celery_app.conf['RAW_CAPTURE_PATH'],

@@ -5,15 +5,10 @@ import os
 import bleach
 import werkzeug.exceptions
 from flask import jsonify, Blueprint, current_app, request, redirect
-from redis import Redis
 
-from app.services import VideoService
+from app import redis_app, video_service
 
 bp = Blueprint('api', __name__, url_prefix='/api')
-
-redis_app = Redis()
-
-video_service = VideoService()
 
 
 def str_to_bool(value: str) -> bool:

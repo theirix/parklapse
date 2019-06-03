@@ -3,11 +3,25 @@ import sys
 
 import werkzeug.exceptions
 from flask import Flask, jsonify
+from redis import Redis
 
-from app.api import video_service
 from app.config import Config
 from app.services import VideoService
 
+# Services
+
+redis_app = Redis()
+
+video_service = VideoService()
+
+
+# limiter = flask_limiter.Limiter(
+#     key_func=flask_limiter.util.get_remote_address,
+#     default_limits=[],
+# )
+
+
+# Error handlers
 
 def errhandler_not_found(_):
     return jsonify({'message': 'Resource not found'}), 404
@@ -49,5 +63,7 @@ def create_app():
     video_service.init_config(app.config['RAW_CAPTURE_PATH'],
                               app.config['TIMELAPSE_PATH'],
                               app.config['TMP_PATH'])
+
+    # limiter.init_app(app)
 
     return app
