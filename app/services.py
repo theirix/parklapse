@@ -160,6 +160,7 @@ class VideoService:
                 return False
 
             if os.path.isfile(os.path.join(self.timelapse_path, timelapse_err_name)):
+                os.remove(os.path.join(self.timelapse_path, timelapse_err_name))
                 logger.info(f"Error file for this video exists, try to generate again")
 
             if random_failure and slot == 2:
@@ -218,6 +219,7 @@ class VideoService:
 
         command = [os.path.join(self.local_bin(), 'ffmpeg')]
         command.extend(['-hide_banner',
+                        '-nostdin'
                         '-i',
                         in_video_path])
         command_str = f"-vf setpts=PTS/{speedup} -r {fps} -c:v libx264 -preset slow " + \
