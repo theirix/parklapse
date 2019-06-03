@@ -256,3 +256,25 @@ class VideoService:
                 for file
                 in sorted(glob.glob(self.timelapse_path + '/*.mp4'))
                 if os.path.isfile(file)]
+
+
+class StatsService:
+    def collect_stats(self, video_service: VideoService) -> dict:
+        stats = dict()
+        stats['alive'] = True
+        stats['stats_at'] = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
+        try:
+            stats['raw_count'] = video_service.raw_count()
+            if video_service.raw_last_at():
+                stats['raw_last_at'] = video_service.raw_last_at().replace(microsecond=0).isoformat()
+            stats['timelapses_success_count'] = video_service.timelapses_count()
+            stats['timelapses_error_count'] = video_service.timelapses_error_count()
+            stats['timelapse_last_file'] = video_service.timelapse_last_file()
+            if video_service.timelapse_last_at():
+                stats['timelapse_last_at'] = video_service.timelapse_last_at().isoformat()
+        except Exception as e:
+            logger.error(e)
+            stats['error'] = str(e)
+
+        stats = {k: v for k, v in stats.items() if v is not None}
+        return stats

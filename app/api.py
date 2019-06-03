@@ -1,12 +1,12 @@
 import datetime
-import json
 import os
 
 import bleach
 import werkzeug.exceptions
 from flask import jsonify, Blueprint, current_app, request, redirect
 
-from app import redis_app, video_service, limiter
+from app import video_service, limiter
+from app.services import StatsService
 
 bp = Blueprint('api', __name__, url_prefix='/api')
 
@@ -31,11 +31,10 @@ def health():
 
 
 @bp.route('/stats', methods=['GET'])
+@limiter.limit("1 per second")
 def stats():
-    jstats = redis_app.get('parklapse.stats')
-    if not jstats:
-        raise werkzeug.exceptions.BadRequest('No stats yet')
-    return jsonify(json.loads(jstats))
+    stats_dict = StatsService().collect_stats(video_service)
+    return jsonify(stats_dict)
 
 
 @bp.route('/hello', methods=['POST'])
