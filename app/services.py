@@ -46,7 +46,7 @@ class VideoService:
 
     @staticmethod
     def _parse_timelapse_to_date_and_slot(fname: str) -> (datetime.date, int):
-        # timelapse-20190602_3.mp4
+        # timelapse-slots-20190602_3.mp4
         m = re.match(r'timelapse-slots-(\d+)_(\d)\.mp4', os.path.basename(fname))
         if not m:
             raise ValueError('Wrong filename')
@@ -54,6 +54,16 @@ class VideoService:
         slot = int(m.group(2))
         logger.debug(f"Res: {dt!r} {slot!r}")
         return dt, slot
+
+    @staticmethod
+    def _parse_timelapse_daily_to_date(fname: str) -> datetime.date:
+        # timelapse-daily-20190602.mp4
+        m = re.match(r'timelapse-daily-(\d+)\.mp4', os.path.basename(fname))
+        if not m:
+            raise ValueError('Wrong filename')
+        dt = datetime.datetime.strptime(m.group(1), "%Y%m%d").date()
+        logger.debug(f"Res: {dt!r}")
+        return dt
 
     def raw_last_at(self) -> Optional[datetime.datetime]:
         files = self._enumerate_files()
@@ -256,10 +266,16 @@ class VideoService:
         logger.info(f"Check done, generated {generated_count}, total slots checked {len(slots)}")
         logger.info(f"Stats: success={self.timelapses_daily_count()} errors={self.timelapses_error_count()}")
 
-    def provide_timelapses(self) -> list:
+    def provide_timelapse_slots(self) -> list:
         return [(file, *self._parse_timelapse_to_date_and_slot(file))
                 for file
                 in sorted(glob.glob(self.timelapse_path + '/timelapse-slots-*.mp4'))
+                if os.path.isfile(file)]
+
+    def provide_timelapse_daily(self) -> list:
+        return [(file, self._parse_timelapse_daily_to_date(file))
+                for file
+                in sorted(glob.glob(self.timelapse_path + '/timelapse-daily-*.mp4'))
                 if os.path.isfile(file)]
 
 

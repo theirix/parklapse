@@ -57,8 +57,13 @@ def generate():
 @bp.route('/timelapses', methods=['GET'])
 def timelapses():
     res = {}
-    for file, dt, slot in video_service.provide_timelapses():
-        res.setdefault(dt.strftime("%Y%m%d"), []).append(slot)
+    for file, dt, slot in video_service.provide_timelapse_slots():
+        res.setdefault(dt.strftime("%Y%m%d"), {})
+        res[dt.strftime("%Y%m%d")].setdefault('slots', []).append(slot)
+        res[dt.strftime("%Y%m%d")]['daily'] = False
+    for file, dt in video_service.provide_timelapse_daily():
+        res.setdefault(dt.strftime("%Y%m%d"), {})
+        res[dt.strftime("%Y%m%d")]['daily'] = True
     return jsonify(res)
 
 
