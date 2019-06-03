@@ -23,6 +23,10 @@ class VideoService:
         self.raw_capture_path = raw_capture_path
         self.timelapse_path = timelapse_path
         self.tmp_path = tmp_path
+        if not self.raw_capture_path or not os.path.isdir(self.raw_capture_path):
+            raise RuntimeError('Bad raw_capture_path')
+        if not self.timelapse_path or not os.path.isdir(self.timelapse_path):
+            raise RuntimeError('Bad timelapse_path')
 
     def _enumerate_files(self) -> list:
         return list(sorted(file for file

@@ -1,6 +1,7 @@
 import logging
 import sys
 
+import flask_cors
 import flask_limiter.util
 import werkzeug.exceptions
 from flask import Flask, jsonify
@@ -20,6 +21,7 @@ limiter = flask_limiter.Limiter(
     default_limits=["10 per minute"],
 )
 
+cors = flask_cors.CORS()
 
 # Error handlers
 
@@ -65,5 +67,14 @@ def create_app():
                               app.config['TMP_PATH'])
 
     limiter.init_app(app)
+
+    cors_resources = {r"/api/health": {"origins": "*"}}
+    if app.config['CORS_ORIGIN']:
+        cors_resources[r"/api/*"] = {"origins": app.config['CORS_ORIGIN']}
+    else:
+        cors_resources[r"/api/*"] = {"origins": "*"}
+    cors.init_app(app, resources=cors_resources)
+
+    logging.getLogger('flask_cors').level = logging.DEBUG
 
     return app
