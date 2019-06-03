@@ -47,7 +47,7 @@ class VideoService:
     @staticmethod
     def _parse_timelapse_to_date_and_slot(fname: str) -> (datetime.date, int):
         # timelapse-20190602_3.mp4
-        m = re.match(r'timelapse-(\d+)_(\d)\.mp4', os.path.basename(fname))
+        m = re.match(r'timelapse-slots-(\d+)_(\d)\.mp4', os.path.basename(fname))
         if not m:
             raise ValueError('Wrong filename')
         dt = datetime.datetime.strptime(m.group(1), "%Y%m%d").date()
@@ -67,14 +67,19 @@ class VideoService:
                     in glob.glob(self.timelapse_path + '/*.err')
                     if os.path.isfile(file)])
 
-    def timelapses_count(self):
+    def timelapses_slots_count(self):
         return len([file for file
-                    in glob.glob(self.timelapse_path + '/*.mp4')
+                    in glob.glob(self.timelapse_path + '/timelapse-slots-*.mp4')
+                    if os.path.isfile(file)])
+
+    def timelapses_daily_count(self):
+        return len([file for file
+                    in glob.glob(self.timelapse_path + '/timelapse-daily-*.mp4')
                     if os.path.isfile(file)])
 
     def timelapse_last_file(self):
         files = sorted([file for file
-                        in glob.glob(self.timelapse_path + '/*.mp4')
+                        in glob.glob(self.timelapse_path + '/timelapse-slots-*.mp4')
                         if os.path.isfile(file)])
         if not files:
             return None
@@ -82,7 +87,7 @@ class VideoService:
 
     def timelapse_last_at(self):
         files = sorted([file for file
-                        in glob.glob(self.timelapse_path + '/*.mp4')
+                        in glob.glob(self.timelapse_path + '/timelapse-slots-*.mp4')
                         if os.path.isfile(file)])
         if not files:
             return None
@@ -91,7 +96,7 @@ class VideoService:
 
     def slot_to_timelapse(self, date: datetime.date, slot: int) -> Optional[str]:
         files = sorted([file for file
-                        in glob.glob(self.timelapse_path + '/*.mp4')
+                        in glob.glob(self.timelapse_path + '/timelapse-slots-*.mp4')
                         if os.path.isfile(file) and
                         self._parse_timelapse_to_date_and_slot(file) == (date, slot)])
         if not files:
@@ -184,8 +189,8 @@ class VideoService:
 
     @staticmethod
     def _make_timelapse_video_base(dt: datetime.datetime, slot: int) -> str:
-        return "timelapse-{}_{}".format(dt.strftime('%Y%m%d'),
-                                        slot)
+        return "timelapse-slots-{}_{}".format(dt.strftime('%Y%m%d'),
+                                              slot)
 
     def _compose_concat_video(self, files: list, out_video_path: str):
         if not files:
@@ -249,12 +254,12 @@ class VideoService:
             dt = dt + datetime.timedelta(hours=1)
 
         logger.info(f"Check done, generated {generated_count}, total slots checked {len(slots)}")
-        logger.info(f"Stats: success={self.timelapses_count()} errors={self.timelapses_error_count()}")
+        logger.info(f"Stats: success={self.timelapses_daily_count()} errors={self.timelapses_error_count()}")
 
     def provide_timelapses(self) -> list:
         return [(file, *self._parse_timelapse_to_date_and_slot(file))
                 for file
-                in sorted(glob.glob(self.timelapse_path + '/*.mp4'))
+                in sorted(glob.glob(self.timelapse_path + '/timelapse-slots-*.mp4'))
                 if os.path.isfile(file)]
 
 
@@ -267,7 +272,8 @@ class StatsService:
             stats['raw_count'] = video_service.raw_count()
             if video_service.raw_last_at():
                 stats['raw_last_at'] = video_service.raw_last_at().replace(microsecond=0).isoformat()
-            stats['timelapses_success_count'] = video_service.timelapses_count()
+            stats['timelapses_daily_count'] = video_service.timelapses_daily_count()
+            stats['timelapses_success_count'] = video_service.timelapses_slots_count()
             stats['timelapses_error_count'] = video_service.timelapses_error_count()
             stats['timelapse_last_file'] = video_service.timelapse_last_file()
             if video_service.timelapse_last_at():
