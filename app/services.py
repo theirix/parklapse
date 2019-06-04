@@ -337,7 +337,7 @@ class VideoService:
         generated_slots_count = 0
         slots = set()
         days = set()
-        while dt <= last_dt:
+        while dt < last_dt:
             slot = self._timelapse_slot(dt)
             slots.add(slot)
             days.add(dt.date())
