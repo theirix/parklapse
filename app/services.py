@@ -143,7 +143,15 @@ class VideoService:
                 logger.warning(f'Removing existing target {concat_video_path}')
                 os.remove(concat_video_path)
 
-            self._compose_concat_video(slot_files, concat_video_path)
+            try:
+                self._compose_concat_video(slot_files, concat_video_path)
+            except Exception:
+                # Check which file caused failure
+                for slot_file in slot_files:
+                    good, reason = self._is_good_video(slot_file)
+                    if not good:
+                        logger.error(f"Bad video {slot_file}: {reason}")
+                raise
             logger.info(f"Got composed video path: {concat_video_path}")
 
             tmp_timelapse_video_path = os.path.join(tmpdirname, timelapse_video_name)
@@ -301,6 +309,17 @@ class VideoService:
         if res.returncode != 0:
             raise RuntimeError('Concatenation failed ' + str(res.stderr.decode('latin-1')))
         logger.info("Succeed")
+
+    def _is_good_video(self, video_path: str) -> (bool, Optional[str]):
+        if not video_path or not os.path.isfile(video_path):
+            return False, None
+
+        command = [os.path.join(self.local_bin(), 'ffprobe'), '-hide_banner', video_path]
+        res = subprocess.run(command, shell=False, check=False,
+                             stdout=None, stderr=subprocess.PIPE)
+        if res.returncode != 0:
+            return False, str(res.stderr.decode('latin-1'))
+        return True, None
 
     def _compose_timelapse_video(self, in_video_path: str, out_video_path: str):
         bitrate = 4  # mbs
