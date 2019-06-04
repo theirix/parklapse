@@ -349,6 +349,8 @@ class VideoService:
         if len(files) < 2:
             return
 
+        now = datetime.datetime.now()
+
         first_dt = self._parse_raw_dt(files[0])
         last_dt = self._parse_raw_dt(files[-2])
         # run through them with a 1 hour stride
@@ -360,8 +362,12 @@ class VideoService:
             slot = self._timelapse_slot(dt)
             slots.add(slot)
             days.add(dt.date())
-            if self.produce_timelapse(dt, self._timelapse_slot(dt), read_only, random_failure):
-                generated_slots_count += 1
+
+            if dt.date() == now.date() and self._timelapse_slot(dt) == self._timelapse_slot(now):
+                logger.info("Skipping current slot")
+            else:
+                if self.produce_timelapse(dt, self._timelapse_slot(dt), read_only, random_failure):
+                    generated_slots_count += 1
 
             dt = dt + datetime.timedelta(hours=1)
 
