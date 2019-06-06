@@ -19,3 +19,11 @@ def check_timelapse_task():
     logger.info("Called check_timelapse_task")
 
     video_service.check_timelapses(celery_app.conf['READ_ONLY'], False)
+
+
+@celery_app.task(ignore_result=True)
+def archive_task():
+    logger = get_task_logger(archive_task.name)
+    logger.info("Called archive_task")
+
+    video_service.archive(celery_app.conf['READ_ONLY'])

@@ -64,7 +64,8 @@ def create_app():
 
     video_service.init_config(app.config['RAW_CAPTURE_PATH'],
                               app.config['TIMELAPSE_PATH'],
-                              app.config['TMP_PATH'])
+                              app.config['TMP_PATH'],
+                              app.config['ARCHIVE_PATH'])
 
     limiter.init_app(app)
 
@@ -77,5 +78,8 @@ def create_app():
     cors.init_app(app, resources=cors_resources)
 
     logging.getLogger('flask_cors').level = logging.DEBUG
+    logging.getLogger('boto3').setLevel(logging.WARNING)
+    logging.getLogger('botocore').setLevel(logging.WARNING)
+    logging.getLogger('nose').setLevel(logging.WARNING)
 
     return app

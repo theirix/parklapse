@@ -7,6 +7,7 @@ class Config(metaclass=MetaFlaskEnv):
     SECRET_KEY = 'secret'
     RAW_CAPTURE_PATH = None
     TIMELAPSE_PATH = None
+    ARCHIVE_PATH = None
     TMP_PATH = None
     REDIS_URL = 'redis://localhost:6379'
     TIMELAPSES_URL_PREFIX = '/'

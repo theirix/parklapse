@@ -9,7 +9,11 @@ import sys
 import tempfile
 from typing import Optional
 
+import boto3
+
 logger = logging.getLogger(__name__)
+
+BUCKET_NAME = 'parklapse-archive-omniverse'
 
 
 class VideoService:
@@ -19,14 +23,17 @@ class VideoService:
             self.init_config(*args)
 
     # noinspection PyAttributeOutsideInit
-    def init_config(self, raw_capture_path, timelapse_path, tmp_path):
+    def init_config(self, raw_capture_path, timelapse_path, tmp_path, archive_path):
         self.raw_capture_path = raw_capture_path
         self.timelapse_path = timelapse_path
         self.tmp_path = tmp_path
+        self.archive_path = archive_path
         if not self.raw_capture_path or not os.path.isdir(self.raw_capture_path):
             raise RuntimeError('Bad raw_capture_path')
         if not self.timelapse_path or not os.path.isdir(self.timelapse_path):
             raise RuntimeError('Bad timelapse_path')
+        if not self.archive_path or not os.path.isdir(self.archive_path):
+            raise RuntimeError('Bad archive_path')
 
     def _enumerate_raw_files(self) -> list:
         return list(sorted(file for file
@@ -291,6 +298,10 @@ class VideoService:
     def _make_timelapse_daily_video_base(dt: datetime.date) -> str:
         return "timelapse-daily-{}".format(dt.strftime('%Y%m%d'))
 
+    @staticmethod
+    def _make_archive_video_base(dt: datetime.date, hour: int) -> str:
+        return "archive-{}_{}".format(dt.strftime('%Y%m%d'), hour)
+
     def _compose_concat_video(self, files: list, out_video_path: str):
         if not files:
             raise RuntimeError('No files')
@@ -375,7 +386,8 @@ class VideoService:
 
         # run through days
         generated_daily_count = 0
-        days.remove(datetime.datetime.now().date())
+        if datetime.datetime.now().date() in days:
+            days.remove(datetime.datetime.now().date())
         for day in days:
             if self.produce_daily_timelapse(day, read_only, random_failure):
                 generated_daily_count += 1
@@ -395,6 +407,103 @@ class VideoService:
                 for file
                 in sorted(glob.glob(self.timelapse_path + '/timelapse-daily-*.mp4'))
                 if os.path.isfile(file)]
+
+    def _generate_archive(self, date: datetime.date, hour: int, read_only: bool) -> bool:
+        logging.info(f"Building archive for {date}:{hour}")
+        archive_video_base = self._make_archive_video_base(date, hour)
+        archive_status_path = os.path.join(self.archive_path, archive_video_base + '.ok')
+        archive_video_path = os.path.join(self.archive_path, archive_video_base + '.mp4')
+
+        if os.path.isfile(archive_status_path):
+            logging.info("Already done")
+            return False
+        try:
+
+            if os.path.isfile(archive_video_path):
+                logging.info("Already here, removing")
+                os.remove(archive_video_path)
+
+            files = sorted([file for file in self._enumerate_raw_files() if
+                            self._parse_raw_dt(file).date() == date and
+                            self._parse_raw_dt(file).hour == hour and
+                            self._is_good_video(file)])
+            logging.info("Files are: " + repr(files))
+            logging.info("Target is: " + archive_video_path)
+
+            if not files:
+                logging.info("No files found")
+                return False
+
+            command = [os.path.join(self.local_bin(), 'ffmpeg'),
+                       '-hide_banner',
+                       '-nostdin',
+                       '-threads',
+                       '1']
+            # ffmpeg -i out-20190604T1706.mp4  -i out-20190604T1716.mp4  -filter_complex \
+            # "[0:v:0]fps=8,scale=1280:720,format=yuvj420p[v0];\
+            # [1:v:0]fps=8,scale=1280:720,format=yuvj420p[v1];\
+            # [v0][v1]concat=n=2:v=1[outv]" \
+            # -map "[outv]" -c:v libx264 -crf 26 -maxrate 1000K -bufsize 1600K output.mp4
+            for file in files:
+                command.extend(['-i',
+                                file])
+            filter_expr = ''
+            filter_expr += ''.join([str(f'[{m}:v:0]fps=8,scale=1280:720,format=yuvj420p[v{m}];')
+                                    for m, _ in enumerate(files)])
+            filter_expr += ''.join([str(f'[v{m}]')
+                                    for m, _ in enumerate(files)])
+            filter_expr += f'concat=n={len(files)}:v=1[outv]'
+            command.extend(['-filter_complex',
+                            filter_expr])
+            expr = '-map [outv] -c:v libx264 -crf 26 -maxrate 1000K -bufsize 1600K'
+            command.extend(expr.split(' '))
+            command.extend([archive_video_path])
+            logger.info("Launching: " + " ".join(command))
+            res = subprocess.run(command, shell=False, check=False,
+                                 stdout=None, stderr=subprocess.PIPE)
+            if res.returncode != 0:
+                raise RuntimeError('Remux failed ' + str(res.stderr.decode('latin-1')))
+            logger.info("Succeed")
+
+            self._upload_to_s3(archive_video_base + '.mp4', archive_video_path)
+
+            logger.info("Uploaded to s3")
+
+            shutil.move(archive_video_path, self.tmp_path)
+
+            # Mark as completed
+            with open(archive_status_path, 'wt') as f:
+                f.write('ok')
+
+            logger.info("Marked as completed")
+
+            logger.info("Rename original files")
+            for file in files:
+                os.rename(file, file + '.del')
+
+            logger.info("Done archiving")
+            return True
+
+        except Exception as e:
+            logger.error(str(e))
+            logger.exception(e)
+            with open(os.path.join(self.timelapse_path, archive_video_base + '.err'), 'wt') as f:
+                f.write(datetime.datetime.now(datetime.timezone.utc).isoformat() + "\n")
+                f.write(f"Video cannot be archived\n")
+                f.write("Error: " + str(e) + "\n")
+            return False
+
+    def _upload_to_s3(self, name, path):
+        s3_client = boto3.client('s3')
+        s3_client.upload_file(path, BUCKET_NAME, name)
+
+    def archive(self, read_only: bool):
+        dates = {self._parse_raw_dt(file).date() for file in self._enumerate_raw_files()}
+        logging.info(f"Found raw files for {len(dates)} dates: {repr(dates)}")
+        if dates:
+            for hour in range(0, 24):
+                if self._generate_archive(list(dates)[0], hour, read_only):
+                    break
 
 
 class StatsService:
