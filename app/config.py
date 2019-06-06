@@ -13,3 +13,4 @@ class Config(metaclass=MetaFlaskEnv):
     TIMELAPSES_URL_PREFIX = '/'
     CORS_ORIGIN = None
     READ_ONLY = True
+    BUCKET_NAME = None

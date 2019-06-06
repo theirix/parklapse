@@ -65,7 +65,8 @@ def create_app():
     video_service.init_config(app.config['RAW_CAPTURE_PATH'],
                               app.config['TIMELAPSE_PATH'],
                               app.config['TMP_PATH'],
-                              app.config['ARCHIVE_PATH'])
+                              app.config['ARCHIVE_PATH'],
+                              app.config['BUCKET_NAME'])
 
     limiter.init_app(app)
 

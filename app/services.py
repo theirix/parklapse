@@ -13,8 +13,6 @@ import boto3
 
 logger = logging.getLogger(__name__)
 
-BUCKET_NAME = 'parklapse-archive-omniverse'
-
 
 class VideoService:
 
@@ -23,17 +21,20 @@ class VideoService:
             self.init_config(*args)
 
     # noinspection PyAttributeOutsideInit
-    def init_config(self, raw_capture_path, timelapse_path, tmp_path, archive_path):
+    def init_config(self, raw_capture_path, timelapse_path, tmp_path, archive_path, bucket_name):
         self.raw_capture_path = raw_capture_path
         self.timelapse_path = timelapse_path
         self.tmp_path = tmp_path
         self.archive_path = archive_path
+        self.bucket_name = bucket_name
         if not self.raw_capture_path or not os.path.isdir(self.raw_capture_path):
             raise RuntimeError('Bad raw_capture_path')
         if not self.timelapse_path or not os.path.isdir(self.timelapse_path):
             raise RuntimeError('Bad timelapse_path')
         if not self.archive_path or not os.path.isdir(self.archive_path):
             raise RuntimeError('Bad archive_path')
+        if not self.bucket_name:
+            raise RuntimeError('No bucket name')
 
     def _enumerate_raw_files(self) -> list:
         return list(sorted(file for file
@@ -495,7 +496,7 @@ class VideoService:
 
     def _upload_to_s3(self, name, path):
         s3_client = boto3.client('s3')
-        s3_client.upload_file(path, BUCKET_NAME, name)
+        s3_client.upload_file(path, self.bucket_name, name)
 
     def archive(self, read_only: bool):
         dates = {self._parse_raw_dt(file).date() for file in self._enumerate_raw_files()}
