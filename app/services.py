@@ -484,7 +484,7 @@ class VideoService:
             command.extend(['-filter_complex',
                             filter_expr])
             # expr = '-map [outv] -c:v libx264 -crf 26 -maxrate 1000K -bufsize 1600K'
-            expr = '-map [outv] -c:v libx264 -crf 23 -maxrate 1500K -bufsize 2000K'
+            expr = '-map [outv] -c:v libx264 -crf 24 -maxrate 1200K -bufsize 1700K'
             command.extend(expr.split(' '))
             command.extend([archive_video_path])
 
