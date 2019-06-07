@@ -147,9 +147,9 @@ class VideoService:
 
     def get_timelapses_for_date(self, date: datetime.date) -> Optional[str]:
         files = sorted([file for file
-                        in glob.glob(self.timelapse_path + '/timelapse-slots-*.mp4')
+                        in glob.glob(self.timelapse_path + '/timelapse-daily-*.mp4')
                         if os.path.isfile(file) and
-                        self._parse_timelapse_to_date_and_slot(file)[0] == date])
+                        self._parse_timelapse_to_date(file) == date])
         if not files:
             return None
         if len(files) > 1:
