@@ -605,7 +605,7 @@ class StatsService:
             stats['archives_error_count'] = video_service.archives_error_count()
             if video_service.timelapse_last_at():
                 stats['timelapse_last_at'] = video_service.timelapse_last_at().isoformat()
-            stats["free_disk"] = (psutil.disk_usage(video_service.raw_capture_path).free // (1024 * 1024))
+            stats["free_disk"] = (psutil.disk_usage(video_service.raw_capture_path).free // (1024 * 1024 * 1024))
         except Exception as e:
             logger.error(e)
             stats['error'] = str(e)
