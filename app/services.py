@@ -493,9 +493,9 @@ class VideoService:
 
             logger.info("Marked as completed")
 
-            logger.info("Rename original files")
+            logger.info("Delete original files")
             for file in files:
-                os.rename(file, file + '.del')
+                os.unlink(file)
 
             logger.info("Done archiving")
             return True
@@ -522,7 +522,9 @@ class VideoService:
         dates = dates[0:1]
         for date in dates:
             for hour in range(0, 24):
-                self._generate_archive(date, hour, read_only)
+                if self._generate_archive(date, hour, read_only):
+                    # yield queue time to other tasks
+                    return True
 
 
 class StatsService:
