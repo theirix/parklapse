@@ -61,7 +61,7 @@ class VideoService:
             raise ValueError('Wrong filename ' + fname)
         date = datetime.datetime.strptime(m.group(1), "%Y%m%d").date()
         slot = int(m.group(2))
-        logger.debug(f"Res: {date!r} {slot!r}")
+        # logger.debug(f"Res: {date!r} {slot!r}")
         return date, slot
 
     @staticmethod
@@ -71,7 +71,7 @@ class VideoService:
         if not m:
             raise ValueError('Wrong filename ' + fname)
         dt = datetime.datetime.strptime(m.group(1), "%Y%m%d").date()
-        logger.debug(f"Res: {dt!r}")
+        # logger.debug(f"Res: {dt!r}")
         return dt
 
     def raw_last_at(self) -> Optional[datetime.datetime]:

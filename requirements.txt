@@ -7,3 +7,4 @@ Flask-Limiter==1.0.1
 redis==3.2.1
 werkzeug==0.15.4
 flask-cors==3.0.7
+psutil
