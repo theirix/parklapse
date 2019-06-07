@@ -95,6 +95,16 @@ class VideoService:
                     in glob.glob(self.timelapse_path + '/timelapse-daily-*.mp4')
                     if os.path.isfile(file)])
 
+    def archives_count(self):
+        return len([file for file
+                    in glob.glob(self.archive_path + '/archive-*.ok')
+                    if os.path.isfile(file)])
+
+    def archives_error_count(self):
+        return len([file for file
+                    in glob.glob(self.archive_path + '/archive-*.err')
+                    if os.path.isfile(file)])
+
     def timelapse_last_file(self):
         files = sorted([file for file
                         in glob.glob(self.timelapse_path + '/timelapse-slots-*.mp4')
@@ -413,11 +423,16 @@ class VideoService:
         logging.info(f"Building archive for {date}:{hour}")
         archive_video_base = self._make_archive_video_base(date, hour)
         archive_status_path = os.path.join(self.archive_path, archive_video_base + '.ok')
+        archive_error_path = os.path.join(self.archive_path, archive_video_base + '.err')
         archive_video_path = os.path.join(self.archive_path, archive_video_base + '.mp4')
 
         if os.path.isfile(archive_status_path):
             logging.info("Already done")
             return False
+        if os.path.isfile(archive_error_path):
+            logging.info("Already errored")
+            return False
+
         try:
 
             if os.path.isfile(archive_video_path):
@@ -488,7 +503,7 @@ class VideoService:
         except Exception as e:
             logger.error(str(e))
             logger.exception(e)
-            with open(os.path.join(self.timelapse_path, archive_video_base + '.err'), 'wt') as f:
+            with open(archive_error_path, 'wt') as f:
                 f.write(datetime.datetime.now(datetime.timezone.utc).isoformat() + "\n")
                 f.write(f"Video cannot be archived\n")
                 f.write("Error: " + str(e) + "\n")
@@ -499,11 +514,15 @@ class VideoService:
         s3_client.upload_file(path, self.bucket_name, name)
 
     def archive(self, read_only: bool):
-        dates = {self._parse_raw_dt(file).date() for file in self._enumerate_raw_files()}
+        dates = sorted(list({self._parse_raw_dt(file).date() for file in self._enumerate_raw_files()}))
         logging.info(f"Found raw files for {len(dates)} dates: {repr(dates)}")
-        if dates:
+
+        now = datetime.datetime.now()
+        dates = [date for date in dates if abs(date - now) > datetime.timedelta(days=2)]
+        dates = dates[0]
+        for date in dates:
             for hour in range(0, 24):
-                if self._generate_archive(list(dates)[0], hour, read_only):
+                if self._generate_archive(date, hour, read_only):
                     break
 
 
@@ -520,6 +539,8 @@ class StatsService:
             stats['timelapses_success_count'] = video_service.timelapses_slots_count()
             stats['timelapses_error_count'] = video_service.timelapses_error_count()
             stats['timelapse_last_file'] = video_service.timelapse_last_file()
+            stats['archives_count'] = video_service.archives_count()
+            stats['archives_error_count'] = video_service.archives_error_count()
             if video_service.timelapse_last_at():
                 stats['timelapse_last_at'] = video_service.timelapse_last_at().isoformat()
         except Exception as e:
