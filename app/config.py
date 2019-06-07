@@ -13,4 +13,6 @@ class Config(metaclass=MetaFlaskEnv):
     TIMELAPSES_URL_PREFIX = '/'
     CORS_ORIGIN = None
     READ_ONLY = True
+    ENABLE_S3 = False
     BUCKET_NAME = None
+    BUCKET_STORAGE_CLASS = 'ONEZONE_IA'

@@ -21,19 +21,20 @@ class VideoService:
             self.init_config(*args)
 
     # noinspection PyAttributeOutsideInit
-    def init_config(self, raw_capture_path, timelapse_path, tmp_path, archive_path, bucket_name):
+    def init_config(self, config,
+                    raw_capture_path, timelapse_path, tmp_path, archive_path):
+        self.config = config
         self.raw_capture_path = raw_capture_path
         self.timelapse_path = timelapse_path
         self.tmp_path = tmp_path
         self.archive_path = archive_path
-        self.bucket_name = bucket_name
         if not self.raw_capture_path or not os.path.isdir(self.raw_capture_path):
             raise RuntimeError('Bad raw_capture_path')
         if not self.timelapse_path or not os.path.isdir(self.timelapse_path):
             raise RuntimeError('Bad timelapse_path')
         if not self.archive_path or not os.path.isdir(self.archive_path):
             raise RuntimeError('Bad archive_path')
-        if not self.bucket_name:
+        if not self.config['BUCKET_NAME']:
             raise RuntimeError('No bucket name')
 
     def _enumerate_raw_files(self) -> list:
@@ -487,9 +488,12 @@ class VideoService:
                 raise RuntimeError('Remux failed ' + str(res.stderr.decode('latin-1')))
             logger.info("Succeed")
 
-            self._upload_to_s3(archive_video_base + '.mp4', archive_video_path)
+            if not self._is_good_video(archive_video_path):
+                raise RuntimeError('Archive video is not so good')
 
-            logger.info("Uploaded to s3")
+            if self.config.get('ENABLE_S3', False):
+                self._upload_to_s3(archive_video_base + '.mp4', archive_video_path)
+                logger.info("Uploaded to s3")
 
             shutil.move(archive_video_path, self.tmp_path)
 
@@ -517,7 +521,8 @@ class VideoService:
 
     def _upload_to_s3(self, name, path):
         s3_client = boto3.client('s3')
-        s3_client.upload_file(path, self.bucket_name, name)
+        s3_client.upload_file(path, self.config['BUCKET_NAME'], name,
+                              ExtraArgs={'StorageClass': self.config['BUCKET_STORAGE_CLASS']})
 
     def archive(self, read_only: bool):
         dates = sorted(list({self._parse_raw_dt(file).date() for file in self._enumerate_raw_files()}))
@@ -559,8 +564,8 @@ class StatsService:
 
 
 def init_video_service(video_service, config):
-    video_service.init_config(config['RAW_CAPTURE_PATH'],
+    video_service.init_config(config,
+                              config['RAW_CAPTURE_PATH'],
                               config['TIMELAPSE_PATH'],
                               config['TMP_PATH'],
-                              config['ARCHIVE_PATH'],
-                              config['BUCKET_NAME'])
+                              config['ARCHIVE_PATH'])
