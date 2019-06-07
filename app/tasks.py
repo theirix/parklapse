@@ -5,7 +5,7 @@ from app.celery import celery_app
 
 video_service = VideoService()
 
-init_video_service(video_service, celery_app.con)
+init_video_service(video_service, celery_app.conf)
 
 
 @celery_app.task
