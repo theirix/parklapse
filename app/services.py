@@ -149,7 +149,7 @@ class VideoService:
         files = sorted([file for file
                         in glob.glob(self.timelapse_path + '/timelapse-daily-*.mp4')
                         if os.path.isfile(file) and
-                        self._parse_timelapse_to_date(file) == date])
+                        self._parse_timelapse_daily_to_date(file) == date])
         if not files:
             return None
         if len(files) > 1:
