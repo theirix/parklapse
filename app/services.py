@@ -519,7 +519,7 @@ class VideoService:
 
         dates = [date for date in dates
                  if abs(date - datetime.date.today()) > datetime.timedelta(days=2)]
-        dates = dates[0]
+        dates = dates[0:1]
         for date in dates:
             for hour in range(0, 24):
                 self._generate_archive(date, hour, read_only)
