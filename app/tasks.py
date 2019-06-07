@@ -27,3 +27,11 @@ def archive_task():
     logger.info("Called archive_task")
 
     video_service.archive(celery_app.conf['READ_ONLY'])
+
+
+@celery_app.task(ignore_result=True)
+def watchdog_task():
+    logger = get_task_logger(watchdog_task.name)
+    logger.info("Called watchdog_task")
+
+    video_service.watchdog(celery_app.conf['READ_ONLY'])

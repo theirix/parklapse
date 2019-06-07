@@ -34,7 +34,7 @@ class VideoService:
             raise RuntimeError('Bad timelapse_path')
         if not self.archive_path or not os.path.isdir(self.archive_path):
             raise RuntimeError('Bad archive_path')
-        if not self.config['BUCKET_NAME']:
+        if self.config['ENABLE_S3'] and not self.config['BUCKET_NAME']:
             raise RuntimeError('No bucket name')
 
     def _enumerate_raw_files(self) -> list:
@@ -537,6 +537,18 @@ class VideoService:
                 if self._generate_archive(date, hour, read_only):
                     # yield queue time to other tasks
                     return True
+
+    def watchdog(self, read_only: bool):
+        files = sorted([file for file in self._enumerate_raw_files()])
+        if not files:
+            return
+        dt = self._parse_raw_dt(os.path.basename(files[-1]))
+        logging.info(f"Found last date {dt}")
+        now = datetime.datetime.now()
+        drift = abs(now - dt)
+        logging.info(f"Drift {drift.seconds // 60} minutes")
+        if abs(now - dt) > datetime.timedelta(minutes=12):
+            logging.info("Bad drift, need to kill")
 
 
 class StatsService:
