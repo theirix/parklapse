@@ -522,8 +522,7 @@ class VideoService:
         dates = dates[0]
         for date in dates:
             for hour in range(0, 24):
-                if self._generate_archive(date, hour, read_only):
-                    break
+                self._generate_archive(date, hour, read_only)
 
 
 class StatsService:
