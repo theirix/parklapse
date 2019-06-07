@@ -550,3 +550,11 @@ class StatsService:
 
         stats = {k: v for k, v in stats.items() if v is not None}
         return stats
+
+
+def init_video_service(video_service, config):
+    video_service.init_config(config['RAW_CAPTURE_PATH'],
+                              config['TIMELAPSE_PATH'],
+                              config['TMP_PATH'],
+                              config['ARCHIVE_PATH'],
+                              config['BUCKET_NAME'])

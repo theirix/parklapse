@@ -1,11 +1,11 @@
 from celery.utils.log import get_task_logger
 
-from app import VideoService
+from app import VideoService, init_video_service
 from app.celery import celery_app
 
-video_service = VideoService(celery_app.conf['RAW_CAPTURE_PATH'],
-                             celery_app.conf['TIMELAPSE_PATH'],
-                             celery_app.conf['TMP_PATH'], )
+video_service = VideoService()
+
+init_video_service(video_service, celery_app.con)
 
 
 @celery_app.task

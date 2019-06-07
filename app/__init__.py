@@ -8,7 +8,7 @@ from flask import Flask, jsonify
 from redis import Redis
 
 from app.config import Config
-from app.services import VideoService
+from app.services import VideoService, init_video_service
 
 # Services
 
@@ -62,11 +62,7 @@ def create_app():
 
     app.logger.info("Starting app")
 
-    video_service.init_config(app.config['RAW_CAPTURE_PATH'],
-                              app.config['TIMELAPSE_PATH'],
-                              app.config['TMP_PATH'],
-                              app.config['ARCHIVE_PATH'],
-                              app.config['BUCKET_NAME'])
+    init_video_service(video_service, app.config)
 
     limiter.init_app(app)
 
