@@ -466,14 +466,15 @@ class VideoService:
                 command.extend(['-i',
                                 file])
             filter_expr = ''
-            filter_expr += ''.join([str(f'[{m}:v:0]fps=8,scale=1280:720,format=yuvj420p[v{m}];')
+            filter_expr += ''.join([str(f'[{m}:v:0]fps=12,scale=1280:720,format=yuvj420p[v{m}];')
                                     for m, _ in enumerate(files)])
             filter_expr += ''.join([str(f'[v{m}]')
                                     for m, _ in enumerate(files)])
             filter_expr += f'concat=n={len(files)}:v=1[outv]'
             command.extend(['-filter_complex',
                             filter_expr])
-            expr = '-map [outv] -c:v libx264 -crf 26 -maxrate 1000K -bufsize 1600K'
+            # expr = '-map [outv] -c:v libx264 -crf 26 -maxrate 1000K -bufsize 1600K'
+            expr = '-map [outv] -c:v libx264 -crf 23 -maxrate 1500K -bufsize 2000K'
             command.extend(expr.split(' '))
             command.extend([archive_video_path])
 
