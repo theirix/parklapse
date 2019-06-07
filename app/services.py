@@ -125,6 +125,14 @@ class VideoService:
         dt, _ = self._parse_timelapse_to_date_and_slot(files[-1])
         return dt
 
+    def archive_last_file(self):
+        files = sorted([file for file
+                        in glob.glob(self.archive_path + '/archive-*.ok')
+                        if os.path.isfile(file)])
+        if not files:
+            return None
+        return os.path.basename(files[-1]).replace('.ok', '')
+
     def get_timelapses_for_slot(self, date: datetime.date, slot: int) -> Optional[str]:
         files = sorted([file for file
                         in glob.glob(self.timelapse_path + '/timelapse-slots-*.mp4')
@@ -592,10 +600,12 @@ class StatsService:
             stats['timelapses_success_count'] = video_service.timelapses_slots_count()
             stats['timelapses_error_count'] = video_service.timelapses_error_count()
             stats['timelapse_last_file'] = video_service.timelapse_last_file()
+            stats['archive_last_file'] = video_service.archive_last_file()
             stats['archives_count'] = video_service.archives_count()
             stats['archives_error_count'] = video_service.archives_error_count()
             if video_service.timelapse_last_at():
                 stats['timelapse_last_at'] = video_service.timelapse_last_at().isoformat()
+            stats["free_disk"] = (psutil.disk_usage(video_service.raw_capture_path).free // (1024 * 1024))
         except Exception as e:
             logger.error(e)
             stats['error'] = str(e)
