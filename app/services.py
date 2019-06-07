@@ -570,7 +570,7 @@ class VideoService:
             if target_pid:
                 logging.info(f'Found process {target_pid}')
 
-            if abs(now - dt) > datetime.timedelta(minutes=12) or True:
+            if abs(now - dt) > datetime.timedelta(minutes=12):
                 logging.info("Bad drift, need to kill")
                 if not read_only and target_pid:
                     os.kill(target_pid, signal.SIGKILL)
