@@ -311,7 +311,7 @@ class VideoService:
 
     @staticmethod
     def _make_archive_video_base(dt: datetime.date, hour: int) -> str:
-        return "archive-{}_{}".format(dt.strftime('%Y%m%d'), hour)
+        return "archive-{0}_{1:02d}".format(dt.strftime('%Y%m%d'), hour)
 
     def _compose_concat_video(self, files: list, out_video_path: str):
         if not files:
