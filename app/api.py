@@ -47,7 +47,7 @@ def hello():
 
 @bp.route('/generate', methods=['POST'])
 def generate():
-    # raise werkzeug.exceptions.Unauthorized()
+    raise werkzeug.exceptions.Unauthorized()
     preview = str_to_bool(request.args.get('preview', type=str, default='False'))
     # random_failure = str_to_bool(request.args.get('random_failure', type=str, default='False'))
     # video_service.check_timelapses(preview, random_failure)
