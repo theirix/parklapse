@@ -4,12 +4,14 @@ import logging
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
 from typing import Optional
 
 import boto3
+import psutil
 
 logger = logging.getLogger(__name__)
 
@@ -538,17 +540,43 @@ class VideoService:
                     # yield queue time to other tasks
                     return True
 
+    def _find_stream_process(self) -> Optional[int]:
+        me = psutil.Process()
+        username = me.username()
+        target_pid = None
+        for proc in psutil.process_iter(attrs=['pid', 'cmdline', 'username']):
+            try:
+                if proc.username() == username and \
+                        proc.cmdline() and \
+                        'ffmpeg' in proc.cmdline() and \
+                        '-rtsp_transport' in proc.cmdline():
+                    target_pid = proc.pid
+            except psutil.Error:
+                pass
+        return target_pid
+
     def watchdog(self, read_only: bool):
-        files = sorted([file for file in self._enumerate_raw_files()])
-        if not files:
-            return
-        dt = self._parse_raw_dt(os.path.basename(files[-1]))
-        logging.info(f"Found last date {dt}")
-        now = datetime.datetime.now()
-        drift = abs(now - dt)
-        logging.info(f"Drift {drift.seconds // 60} minutes")
-        if abs(now - dt) > datetime.timedelta(minutes=12):
-            logging.info("Bad drift, need to kill")
+        try:
+            files = sorted([file for file in self._enumerate_raw_files()])
+            if not files:
+                return
+            dt = self._parse_raw_dt(os.path.basename(files[-1]))
+            logging.info(f"Found last date {dt}")
+            now = datetime.datetime.now()
+            drift = abs(now - dt)
+            logging.info(f"Drift {drift.seconds // 60} minutes")
+
+            target_pid = self._find_stream_process()
+            if target_pid:
+                logging.info(f'Found process {target_pid}')
+
+            if abs(now - dt) > datetime.timedelta(minutes=12) or True:
+                logging.info("Bad drift, need to kill")
+                if not read_only and target_pid:
+                    os.kill(target_pid, signal.SIGKILL)
+        except Exception as e:
+            logging.exception(e)
+            logging.error(str(e))
 
 
 class StatsService:
