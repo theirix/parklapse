@@ -78,7 +78,7 @@ def create_app():
     app.logger.info("CORS configuration: " + repr(cors_resources))
     cors.init_app(app, resources=cors_resources)
 
-    logging.getLogger('flask_cors').level = logging.DEBUG
+    logging.getLogger('flask_cors').level = logging.INFO
     logging.getLogger('boto3').setLevel(logging.WARNING)
     logging.getLogger('botocore').setLevel(logging.WARNING)
     logging.getLogger('nose').setLevel(logging.WARNING)
