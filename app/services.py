@@ -437,7 +437,8 @@ class VideoService:
 
             if os.path.isfile(archive_video_path):
                 logging.info("Already here, removing")
-                os.remove(archive_video_path)
+                if not read_only:
+                    os.remove(archive_video_path)
 
             files = sorted([file for file in self._enumerate_raw_files() if
                             self._parse_raw_dt(file).date() == date and
@@ -474,6 +475,11 @@ class VideoService:
             expr = '-map [outv] -c:v libx264 -crf 26 -maxrate 1000K -bufsize 1600K'
             command.extend(expr.split(' '))
             command.extend([archive_video_path])
+
+            if read_only:
+                logger.info("Pretending to launch: " + " ".join(command))
+                return True
+
             logger.info("Launching: " + " ".join(command))
             res = subprocess.run(command, shell=False, check=False,
                                  stdout=None, stderr=subprocess.PIPE)
