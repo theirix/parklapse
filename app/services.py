@@ -81,7 +81,7 @@ class VideoService:
         files = self._enumerate_raw_files()
         if len(files) < 2:
             return None
-        last_completed_file = files[-2]
+        last_completed_file = files[-1]
         return self._parse_raw_dt(last_completed_file)
 
     def timelapses_error_count(self):
