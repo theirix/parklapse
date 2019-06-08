@@ -40,6 +40,8 @@ def create_app():
 
     app.config.from_object(Config)
 
+    app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
+
     logging.basicConfig(stream=sys.stdout,
                         format='[%(asctime)s] %(name)s[%(process)d] %(levelname)s -- %(message)s',
                         level='DEBUG')
