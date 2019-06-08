@@ -569,6 +569,8 @@ class VideoService:
 
     def watchdog(self, read_only: bool):
         try:
+            from app import redis_app
+
             files = sorted([file for file in self._enumerate_raw_files()])
             if not files:
                 return
@@ -585,6 +587,7 @@ class VideoService:
             if abs(now - dt) > datetime.timedelta(minutes=12):
                 logging.info("Bad drift, need to kill")
                 if not read_only and target_pid:
+                    redis_app.incr('parklapse.watchdog.restarts')
                     os.kill(target_pid, signal.SIGKILL)
         except Exception as e:
             logging.exception(e)
@@ -593,6 +596,8 @@ class VideoService:
 
 class StatsService:
     def collect_stats(self, video_service: VideoService) -> dict:
+        from app import redis_app
+
         stats = dict()
         stats['alive'] = True
         stats['stats_at'] = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
@@ -610,6 +615,7 @@ class StatsService:
             if video_service.timelapse_last_at():
                 stats['timelapse_last_at'] = video_service.timelapse_last_at().isoformat()
             stats["free_disk"] = (psutil.disk_usage(video_service.raw_capture_path).free // (1024 * 1024 * 1024))
+            stats["restarts"] = redis_app.get('parklapse.watchdog.restarts') or 0
         except Exception as e:
             logger.error(e)
             stats['error'] = str(e)
