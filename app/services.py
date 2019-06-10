@@ -228,15 +228,13 @@ class VideoService:
 
     def produce_timelapse(self, dt: datetime.datetime, slot: int, read_only: bool, random_failure: bool) -> bool:
         # Returns True if timelapse was actually generated
-        logger.info(f"Creating timelapse for date {dt.isoformat()} and slot {slot}")
         timelapse_video_base = self._make_timelapse_video_base(dt, slot)
 
         timelapse_video_name = timelapse_video_base + '.mp4'
         timelapse_err_name = timelapse_video_base + '.err'
         try:
-            logger.info(f"Video name would be {timelapse_video_name}")
             if os.path.isfile(os.path.join(self.timelapse_path, timelapse_video_name)):
-                logger.info(f"Target video already exists, skipping")
+                # logger.info(f"Target video already exists, skipping")
                 return False
 
             if os.path.isfile(os.path.join(self.timelapse_path, timelapse_err_name)):
@@ -247,6 +245,9 @@ class VideoService:
                 raise RuntimeError('Random error!')
 
             # specific code
+            logger.info(f"Creating timelapse for date {dt.isoformat()} and slot {slot}")
+            logger.info(f"Video name would be {timelapse_video_name}")
+
             slot_files = self._deduce_slot_files(dt, slot)
             if not slot_files:
                 logger.info("Nothing to do")
@@ -266,15 +267,13 @@ class VideoService:
 
     def produce_daily_timelapse(self, date: datetime.date, read_only: bool, random_failure: bool) -> bool:
         # Returns True if timelapse was actually generated
-        logger.info(f"Creating timelapse for day date {date.isoformat()}")
         timelapse_video_base = self._make_timelapse_daily_video_base(date)
 
         timelapse_video_name = timelapse_video_base + '.mp4'
         timelapse_err_name = timelapse_video_base + '.err'
         try:
-            logger.info(f"Video name would be {timelapse_video_name}")
             if os.path.isfile(os.path.join(self.timelapse_path, timelapse_video_name)):
-                logger.info(f"Target video already exists, skipping")
+                # logger.info(f"Target video already exists, skipping")
                 return False
 
             if os.path.isfile(os.path.join(self.timelapse_path, timelapse_err_name)):
@@ -285,6 +284,8 @@ class VideoService:
                 raise RuntimeError('Random error!')
 
             # specific code
+            logger.info(f"Creating timelapse for day date {date.isoformat()}")
+            logger.info(f"Video name would be {timelapse_video_name}")
 
             timelapse_files = sorted(self._deduce_timelapses_for_day(date))
             if not timelapse_files:
@@ -434,20 +435,20 @@ class VideoService:
                 if os.path.isfile(file)]
 
     def _generate_archive(self, date: datetime.date, hour: int, read_only: bool) -> bool:
-        logging.info(f"Building archive for {date}:{hour}")
         archive_video_base = self._make_archive_video_base(date, hour)
         archive_status_path = os.path.join(self.archive_path, archive_video_base + '.ok')
         archive_error_path = os.path.join(self.archive_path, archive_video_base + '.err')
         archive_video_path = os.path.join(self.archive_path, archive_video_base + '.mp4')
 
         if os.path.isfile(archive_status_path):
-            logging.info("Already done")
+            # logging.info("Already done")
             return False
         if os.path.isfile(archive_error_path):
-            logging.info("Already errored")
+            logging.info(f"Archive {archive_video_base} already errored")
             return False
 
         try:
+            logging.info(f"Building archive for {date}:{hour}")
 
             if os.path.isfile(archive_video_path):
                 logging.info("Already here, removing")
@@ -458,12 +459,12 @@ class VideoService:
                             self._parse_raw_dt(file).date() == date and
                             self._parse_raw_dt(file).hour == hour and
                             self._is_good_video(file)])
-            logging.info("Files are: " + repr(files))
-            logging.info("Target is: " + archive_video_path)
 
             if not files:
-                logging.info("No files found")
                 return False
+
+            logging.info("Files are: " + repr(files))
+            logging.info("Target is: " + archive_video_path)
 
             command = [os.path.join(self.local_bin(), 'ffmpeg'),
                        '-hide_banner',
