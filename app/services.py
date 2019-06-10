@@ -615,9 +615,10 @@ class StatsService:
             if video_service.timelapse_last_at():
                 stats['timelapse_last_at'] = video_service.timelapse_last_at().isoformat()
             stats["free_disk"] = (psutil.disk_usage(video_service.raw_capture_path).free // (1024 * 1024 * 1024))
-            stats["restarts"] = redis_app.get('parklapse.watchdog.restarts') or 0
+            stats["restarts"] = int(redis_app.get('parklapse.watchdog.restarts') or '0')
         except Exception as e:
-            logger.error(e)
+            logger.error("Exception happens: " + str(e))
+            logger.exception(e)
             stats['error'] = str(e)
 
         stats = {k: v for k, v in stats.items() if v is not None}
