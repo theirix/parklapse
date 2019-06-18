@@ -414,7 +414,8 @@ class VideoService:
                 logger.info("Skipping current slot")
             else:
                 if self.produce_timelapse(dt, self._timelapse_slot(dt), read_only, random_failure):
-                    time.sleep(5)
+                    logger.info("Sleeping after hourly timelapse for a minute")
+                    time.sleep(60)
                     generated_slots_count += 1
 
             dt = dt + datetime.timedelta(hours=1)
@@ -427,7 +428,8 @@ class VideoService:
             days.remove(datetime.datetime.now().date())
         for day in days:
             if self.produce_daily_timelapse(day, read_only, random_failure):
-                time.sleep(5)
+                logger.info("Sleeping after daily timelapse for a minute")
+                time.sleep(60)
                 generated_daily_count += 1
 
         logger.info(f"Check done, generated {generated_daily_count} daily tl, checked {len(days)} days")
@@ -562,7 +564,8 @@ class VideoService:
             for hour in range(0, 24):
                 if self._generate_archive(date, hour, read_only):
                     # yield queue time to other tasks
-                    time.sleep(5)
+                    logger.info("Sleeping after archive for a minute")
+                    time.sleep(60)
                     return True
 
     def _find_stream_process(self) -> Optional[int]:
