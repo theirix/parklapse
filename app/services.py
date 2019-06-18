@@ -25,18 +25,21 @@ class VideoService:
 
     # noinspection PyAttributeOutsideInit
     def init_config(self, config,
-                    raw_capture_path, timelapse_path, tmp_path, archive_path):
+                    raw_capture_path, timelapse_path, tmp_path, archive_path, damaged_path):
         self.config = config
         self.raw_capture_path = raw_capture_path
         self.timelapse_path = timelapse_path
         self.tmp_path = tmp_path
         self.archive_path = archive_path
+        self.damaged_path = damaged_path
         if not self.raw_capture_path or not os.path.isdir(self.raw_capture_path):
             raise RuntimeError('Bad raw_capture_path')
         if not self.timelapse_path or not os.path.isdir(self.timelapse_path):
             raise RuntimeError('Bad timelapse_path')
         if not self.archive_path or not os.path.isdir(self.archive_path):
             raise RuntimeError('Bad archive_path')
+        if not self.damaged_path or not os.path.isdir(self.damaged_path):
+            raise RuntimeError('Bad damaged')
         if self.config['ENABLE_S3'] and not self.config['BUCKET_NAME']:
             raise RuntimeError('No bucket name')
 
@@ -253,8 +256,17 @@ class VideoService:
                 logger.info("Nothing to do")
                 return False
 
+            good_slot_files = []
+            for slot_file in slot_files:
+                good, reason = self._is_good_video(slot_file)
+                if good:
+                    good_slot_files.append(slot_file)
+                else:
+                    logger.error(f"Bad video {slot_file}: {reason}, move out")
+                    shutil.move(slot_file, self.damaged_path)
+
             if not read_only:
-                self._make_timelapse_video(slot_files, slot, timelapse_video_base + '.mp4')
+                self._make_timelapse_video(good_slot_files, slot, timelapse_video_base + '.mp4')
                 return True
 
         except Exception as e:
@@ -631,4 +643,5 @@ def init_video_service(video_service, config):
                               config['RAW_CAPTURE_PATH'],
                               config['TIMELAPSE_PATH'],
                               config['TMP_PATH'],
-                              config['ARCHIVE_PATH'])
+                              config['ARCHIVE_PATH'],
+                              config['DAMAGED_PATH'])
