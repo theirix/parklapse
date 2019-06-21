@@ -500,9 +500,14 @@ class VideoService:
                                     for m, _ in enumerate(files)])
             filter_expr += f'concat=n={len(files)}:v=1[outv]'
             command.extend(['-filter_complex',
-                            filter_expr])
-            # expr = '-map [outv] -c:v libx264 -crf 26 -maxrate 1000K -bufsize 1600K'
-            expr = '-map [outv] -c:v libx264 -crf 24 -maxrate 1200K -bufsize 1700K'
+                            filter_expr,
+                            '-map',
+                            '[outv]'])
+            # expr = '-c:v libx264 -crf 26 -maxrate 1000K -bufsize 1600K'
+            # expr = '-c:v libx264 -crf 24 -maxrate 1200K -bufsize 1700K'
+            expr = self.config['ARCHIVE_FFMPEG_ADJUSTMENTS']
+            if not expr:
+                raise RuntimeError('No archive ffmpeg string')
             command.extend(expr.split(' '))
             command.extend([archive_video_path])
 
