@@ -35,3 +35,11 @@ def watchdog_task():
     logger.info("Called watchdog_task")
 
     video_service.watchdog(celery_app.conf['READ_ONLY'])
+
+
+@celery_app.task(ignore_result=True)
+def cleanup_task():
+    logger = get_task_logger(cleanup_task.name)
+    logger.info("Called cleanup_task")
+
+    video_service.cleanup(True)  # celery_app.conf['READ_ONLY'])

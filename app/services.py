@@ -615,6 +615,21 @@ class VideoService:
             logging.exception(e)
             logging.error(str(e))
 
+    def cleanup(self, read_only: bool):
+        tmp_archive_files = sorted([file for file
+                                    in glob.glob(self.tmp_path + '/archive-*.mp4')
+                                    if os.path.isfile(file)])
+        keep = int(self.config['KEEP_ARCHIVE_FILES'])
+        # leave only 'keep' last files, sorted array
+        remove_files = tmp_archive_files[0:-keep]
+        for file in remove_files:
+            logging.info(f"Removing file {file}")
+            if not read_only:
+                try:
+                    os.unlink(file)
+                except OSError as e:
+                    logging.error(str(e))
+
 
 class StatsService:
     def collect_stats(self, video_service: VideoService) -> dict:
