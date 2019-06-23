@@ -622,8 +622,9 @@ class VideoService:
         keep = int(self.config['KEEP_ARCHIVE_FILES'])
         # leave only 'keep' last files, sorted array
         remove_files = tmp_archive_files[0:-keep]
+        logging.info(f"Should cleanup {len(remove_files)} tmp archives")
         for file in remove_files:
-            logging.info(f"Removing file {file}")
+            logging.info(f"Cleaning tmp archive {file}")
             if not read_only:
                 try:
                     os.unlink(file)

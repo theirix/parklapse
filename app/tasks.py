@@ -42,4 +42,4 @@ def cleanup_task():
     logger = get_task_logger(cleanup_task.name)
     logger.info("Called cleanup_task")
 
-    video_service.cleanup(True)  # celery_app.conf['READ_ONLY'])
+    video_service.cleanup(celery_app.conf['READ_ONLY'])
