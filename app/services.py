@@ -563,7 +563,8 @@ class VideoService:
         logging.info(f"Found raw files for {len(dates)} dates: {repr(dates)}")
 
         dates = [date for date in dates
-                 if abs(date - datetime.date.today()) > datetime.timedelta(days=2)]
+                 if abs(date - datetime.date.today()) > datetime.timedelta(hours=36)]
+        logging.info(f"Remaining archive dates: {len(dates)}")
         dates = dates[0:1]
         for date in dates:
             for hour in range(0, 24):
