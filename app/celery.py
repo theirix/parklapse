@@ -20,7 +20,7 @@ def setup_periodic_tasks(sender, **kwargs):
                              queue='slow')
     sender.add_periodic_task(30.0, app.tasks.watchdog_task.s(), name='watchdog_task',
                              queue='fast')
-    sender.add_periodic_task(30.0, app.tasks.watchdog_task.s(), name='cleanup_task',
+    sender.add_periodic_task(30.0, app.tasks.cleanup_task.s(), name='cleanup_task',
                              queue='fast')
 
 
