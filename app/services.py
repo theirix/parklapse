@@ -348,6 +348,7 @@ class VideoService:
             command.append('+')
         command.pop()
         command.extend([
+            '--quiet',
             '-o',
             out_video_path])
         logger.info("Launching: " + " ".join(command))
