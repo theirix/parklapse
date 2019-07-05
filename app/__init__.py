@@ -5,14 +5,14 @@ import flask_cors
 import flask_limiter.util
 import werkzeug.exceptions
 from flask import Flask, jsonify
-from redis import Redis
+from flask_redis import FlaskRedis
 
 from app.config import Config
 from app.services import VideoService, init_video_service
 
 # Services
 
-redis_app = Redis()
+redis_app = FlaskRedis()
 
 video_service = VideoService()
 
@@ -48,13 +48,16 @@ def create_app():
 
     app.logger.info("Initializing app")
 
+    redis_app.init_app(app)
+
     # Register blueprints
     from app.api import bp
     app.register_blueprint(bp)
 
     # photo service
     if not app.config.get('RAW_CAPTURE_PATH', None):
-        raise RuntimeError('No env var specified')
+        raise RuntimeError('No RAW_CAPTURE_PATH specified')
+    app.logger.info(f"Raw capture at {app.config['RAW_CAPTURE_PATH']}")
 
     # exception handlers
     for code in werkzeug.exceptions.default_exceptions:

@@ -3,8 +3,8 @@ from celery import Celery
 from app import Config
 
 celery_app = Celery('parklapse',
-                    broker='redis://',
-                    backend='redis://',
+                    broker=Config.REDIS_URL,
+                    backend=Config.REDIS_URL,
                     include=['app.tasks'])
 
 celery_app.config_from_object(Config)
