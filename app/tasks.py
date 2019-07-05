@@ -43,3 +43,20 @@ def cleanup_task():
     logger.info("Called cleanup_task")
 
     video_service.cleanup(celery_app.conf['READ_ONLY'])
+
+
+@celery_app.task(ignore_result=True, expires=60)
+def receive_task():
+    logger = get_task_logger(receive_task.name)
+    logger.info("Called receive_task")
+
+    from app import redis_app
+
+    class FakeApp:
+        config = celery_app.conf
+
+    redis_app.init_app(FakeApp)
+    task_id = celery_app.current_task.request.id
+    redis_app.set('parklapse.receive.task_id', task_id)
+
+    video_service.receive(celery_app.conf['RTSP_SOURCE'])

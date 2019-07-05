@@ -46,6 +46,18 @@ services:
     depends_on:
       - redis
 
+  celery-inf:
+    build: .
+    command: celery -A app worker -c 1 -l info -Q inf
+    env_file:
+      - app.env
+    environment:
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ${VIDEODATA?err}:/var/lib/videodata:rw
+    depends_on:
+      - redis
+
   celery-beat:
     build: .
     command: celery -A app beat

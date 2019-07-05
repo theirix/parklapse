@@ -22,6 +22,8 @@ def setup_periodic_tasks(sender, **kwargs):
                              queue='fast')
     sender.add_periodic_task(600.0, app.tasks.cleanup_task.s(), name='cleanup_task',
                              queue='slow')
+    sender.add_periodic_task(60.0, app.tasks.receive_task.s(), name='receive_task',
+                             queue='inf')
 
 
 if __name__ == '__main__':

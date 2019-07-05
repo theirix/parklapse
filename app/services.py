@@ -632,6 +632,32 @@ class VideoService:
                 except OSError as e:
                     logging.error(str(e))
 
+    def receive(self, rtsp_source: Optional[str]):
+        if not rtsp_source:
+            return
+
+        command = [os.path.join(self.local_bin(), 'ffmpeg')]
+        command.extend([
+            '-hide_banner',
+            '-nostdin',
+            '-loglevel', 'error',
+            '-rtsp_transport', 'tcp',
+            '-i',
+            rtsp_source,
+            '-vcodec', 'copy',
+            '-f', 'segment',
+            '-segment_time', '600',
+            '-segment_format', 'mp4',
+            '-reset_timestamps', '1',
+            '-strftime', '1',
+            self.raw_capture_path + "/out-%Y%m%dT%H%M.mp4"])
+        logger.info("Launching receive command: " + " ".join(command))
+        res = subprocess.run(command, shell=False, check=False,
+                             stdout=None, stderr=subprocess.PIPE)
+        if res.returncode != 0:
+            raise RuntimeError('Receive failed ' + str(res.stderr.decode('latin-1')))
+        logger.info("Receive completed")
+
 
 class StatsService:
     def collect_stats(self, video_service: VideoService) -> dict:
