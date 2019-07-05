@@ -1,0 +1,59 @@
+version: '3'
+
+# Required environment variables:
+# - VIDEODATA - host path where videodata is stored
+
+services:
+  redis:
+    image: redis
+
+  web:
+    build: .
+    command: python -m flask run -h web
+    env_file:
+      - app.env
+    environment:
+      - FLASK_APP=start
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ${VIDEODATA?err}:/var/lib/videodata:rw
+    ports:
+      - "5000:5000"
+    depends_on:
+      - redis
+
+  celery-fast:
+    build: .
+    command: celery -A app worker -c 1 -l info -Q fast
+    env_file:
+      - app.env
+    environment:
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ${VIDEODATA?err}:/var/lib/videodata:rw
+    depends_on:
+      - redis
+
+  celery-slow:
+    build: .
+    command: celery -A app worker -c 1 -l info -Q slow
+    env_file:
+      - app.env
+    environment:
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ${VIDEODATA?err}:/var/lib/videodata:rw
+    depends_on:
+      - redis
+
+  celery-beat:
+    build: .
+    command: celery -A app beat
+    env_file:
+      - app.env
+    environment:
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ${VIDEODATA?err}:/var/lib/videodata:rw
+    depends_on:
+      - redis

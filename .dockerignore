@@ -1,0 +1,4 @@
+.git
+.dockerignore
+var
+__pycache__
