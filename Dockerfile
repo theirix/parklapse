@@ -18,5 +18,3 @@ RUN chown -R user /code
 USER user
 
 VOLUME /var/lib/videodata
-
-EXPOSE 5000
