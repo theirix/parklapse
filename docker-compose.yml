@@ -18,7 +18,7 @@ services:
     volumes:
       - ${VIDEODATA?err}:/var/lib/videodata:rw
     ports:
-      - "5000:5000"
+      - "${BIND_PORT:-5000}:5000"
     depends_on:
       - redis
 
