@@ -397,6 +397,9 @@ class VideoService:
         logger.info("Succeed")
 
     def check_timelapses(self, read_only: bool, random_failure: bool):
+        # set umask for current and child processes
+        os.umask(0o007)
+
         files = self._enumerate_raw_files()
         if len(files) < 2:
             return
@@ -564,6 +567,9 @@ class VideoService:
                               ExtraArgs={'StorageClass': self.config['BUCKET_STORAGE_CLASS']})
 
     def archive(self, read_only: bool):
+        # set umask for current and child processes
+        os.umask(0o007)
+
         dates = sorted(list({self._parse_raw_dt(file).date() for file in self._enumerate_raw_files()}))
         logging.info(f"Found raw files for {len(dates)} dates: {repr(dates)}")
 
@@ -651,6 +657,9 @@ class VideoService:
             return
 
         self._redis.set('parklapse.receive.task_id', task_id)
+
+        # set umask for current and child processes
+        os.umask(0o007)
 
         out_dir = os.path.join(self.raw_capture_path, 'capture-' + datetime.datetime.now().strftime('%Y%m%dT%H%M'))
         if not os.path.isdir(out_dir):
