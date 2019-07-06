@@ -590,7 +590,7 @@ class VideoService:
                 pass
         return target_pid
 
-    def watchdog(self, read_only: bool):
+    def watchdog(self, use_process: bool, use_celery: bool):
         try:
             from app import redis_app
 
@@ -603,15 +603,27 @@ class VideoService:
             drift = abs(now - dt)
             logging.info(f"Drift {drift.seconds // 60} minutes")
 
-            target_pid = self._find_stream_process()
-            if target_pid:
-                logging.info(f'Found process {target_pid}')
+            bad_drift = abs(now - dt) > datetime.timedelta(minutes=12) or redis_app.get('parklapse.receive.stop')
+            if bad_drift:
+                logging.info("Bad drift, need to stop receiver")
 
-            if abs(now - dt) > datetime.timedelta(minutes=12):
-                logging.info("Bad drift, need to kill")
-                if not read_only and target_pid:
+            if use_process:
+                target_pid = self._find_stream_process()
+                if bad_drift and target_pid:
                     redis_app.incr('parklapse.watchdog.restarts')
+                    logging.info(f'Found process {target_pid}')
                     os.kill(target_pid, signal.SIGKILL)
+
+            if use_celery:
+                task_id_bytes = redis_app.get('parklapse.receive.task_id')  # type: bytes
+                if bad_drift and task_id_bytes:
+                    task_id = task_id_bytes.decode('latin-1')
+                    logging.info(f'Found celery task {task_id}')
+                    redis_app.delete('parklapse.receive.stop')
+                    redis_app.incr('parklapse.watchdog.restarts')
+                    from app.celery import celery_app
+                    celery_app.control.revoke(task_id, terminate=True)
+
         except Exception as e:
             logging.exception(e)
             logging.error(str(e))
@@ -636,6 +648,11 @@ class VideoService:
         if not rtsp_source:
             return
 
+        out_dir = os.path.join(self.raw_capture_path, 'capture-' + datetime.datetime.now().strftime('%Y%m%dT%H%M'))
+        if not os.path.isdir(out_dir):
+            os.mkdir(out_dir)
+
+        out_pattern = os.path.join(out_dir, 'out-%Y%m%dT%H%M.mp4')
         command = [os.path.join(self.local_bin(), 'ffmpeg')]
         command.extend([
             '-hide_banner',
@@ -650,7 +667,7 @@ class VideoService:
             '-segment_format', 'mp4',
             '-reset_timestamps', '1',
             '-strftime', '1',
-            self.raw_capture_path + "/out-%Y%m%dT%H%M.mp4"])
+            out_pattern])
         logger.info("Launching receive command: " + " ".join(command))
         res = subprocess.run(command, shell=False, check=False,
                              stdout=None, stderr=subprocess.PIPE)

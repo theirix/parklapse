@@ -34,7 +34,8 @@ def watchdog_task():
     logger = get_task_logger(watchdog_task.name)
     logger.info("Called watchdog_task")
 
-    video_service.watchdog(not celery_app.conf['ENABLE_WATCHDOG'])
+    video_service.watchdog(celery_app.conf['ENABLE_WATCHDOG_PROCESS'],
+                           celery_app.conf['ENABLE_WATCHDOG_CELERY'], )
 
 
 @celery_app.task(ignore_result=True)

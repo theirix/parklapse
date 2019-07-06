@@ -19,5 +19,6 @@ class Config(metaclass=MetaFlaskEnv):
     BUCKET_STORAGE_CLASS = 'ONEZONE_IA'
     ARCHIVE_FFMPEG_ADJUSTMENTS = '-c:v libx264 -crf 24 -maxrate 1200K -bufsize 1700K'
     KEEP_ARCHIVE_FILES = 30
-    ENABLE_WATCHDOG = True
+    ENABLE_WATCHDOG_PROCESS = False
+    ENABLE_WATCHDOG_CELERY = False
     RTSP_SOURCE = None
