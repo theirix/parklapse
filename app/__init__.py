@@ -25,6 +25,7 @@ cors = flask_cors.CORS()
 
 # Error handlers
 
+
 def errhandler_not_found(_):
     return jsonify({'message': 'Resource not found'}), 404
 

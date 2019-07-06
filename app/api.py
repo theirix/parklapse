@@ -3,7 +3,7 @@ import os
 
 import bleach
 import werkzeug.exceptions
-from flask import jsonify, Blueprint, current_app, request, redirect
+from flask import jsonify, Blueprint, current_app, redirect
 
 from app import video_service, limiter, redis_app
 from app.services import StatsService
@@ -48,11 +48,11 @@ def hello():
 @bp.route('/generate', methods=['POST'])
 def generate():
     raise werkzeug.exceptions.Unauthorized()
-    preview = str_to_bool(request.args.get('preview', type=str, default='False'))
+    # preview = str_to_bool(request.args.get('preview', type=str, default='False'))
     # random_failure = str_to_bool(request.args.get('random_failure', type=str, default='False'))
     # video_service.check_timelapses(preview, random_failure)
-    video_service.archive(preview)
-    return jsonify(status='ok')
+    # video_service.archive(preview)
+    # return jsonify(status='ok')
 
 
 @bp.route('/timelapses', methods=['GET'])

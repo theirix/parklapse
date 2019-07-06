@@ -23,7 +23,7 @@ def worker_process_init_handler(**_kwargs):
 
 
 @celery_app.on_after_configure.connect
-def setup_periodic_tasks(sender, **kwargs):
+def setup_periodic_tasks(sender, **_kwargs):
     print('Setup tasks')
     import app.tasks
     sender.add_periodic_task(60.0, app.tasks.check_timelapse_task.s(), name='check_timelapse_task',
