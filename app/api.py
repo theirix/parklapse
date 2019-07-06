@@ -27,12 +27,14 @@ def str_to_bool(value: str) -> bool:
 @bp.route('/health', methods=['GET'])
 @limiter.exempt
 def health():
+    """Reports a service health"""
     return jsonify(status='ok', debug=current_app.config.get('DEBUG', False))
 
 
 @bp.route('/stats', methods=['GET'])
 @limiter.limit("1 per second")
 def stats():
+    """Reports a service stats"""
     stats_dict = StatsService(redis_app).collect_stats(video_service)
     return jsonify(stats_dict)
 
@@ -40,23 +42,15 @@ def stats():
 @bp.route('/hello', methods=['POST'])
 @limiter.limit("1 per minute")
 def hello():
+    """Debug task"""
     from app.tasks import hello_task
     res = hello_task.delay().get()
     return jsonify(result=repr(res))
 
 
-@bp.route('/generate', methods=['POST'])
-def generate():
-    raise werkzeug.exceptions.Unauthorized()
-    # preview = str_to_bool(request.args.get('preview', type=str, default='False'))
-    # random_failure = str_to_bool(request.args.get('random_failure', type=str, default='False'))
-    # video_service.check_timelapses(preview, random_failure)
-    # video_service.archive(preview)
-    # return jsonify(status='ok')
-
-
 @bp.route('/timelapses', methods=['GET'])
 def timelapses():
+    """Returns a list of available hourly and daily timelapses"""
     res = {}
     for file, dt, slot in video_service.provide_timelapse_slots():
         res.setdefault(dt.strftime("%Y%m%d"), {})
@@ -70,6 +64,7 @@ def timelapses():
 
 @bp.route('/timelapses/<string:date>/hourly/<int:slot>', methods=['GET'])
 def timelapses_hourly(date, slot):
+    """Redirects to a videofile for given hourly timelapse"""
     date_str = bleach.clean(date)
     current_app.logger.info(f"Request timelapses_hourly for date {date_str} slot {slot}")
     try:
@@ -89,6 +84,7 @@ def timelapses_hourly(date, slot):
 
 @bp.route('/timelapses/<string:date>/daily', methods=['GET'])
 def timelapses_daily(date):
+    """Redirects to a videofile for given daily timelapse"""
     date_str = bleach.clean(date)
     current_app.logger.info(f"Request timelapses_daily for date {date_str}")
     try:

@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class VideoService:
+    """Service for actual video-related tasks and gathering statistics"""
 
     def __init__(self, *args):
         if args:
@@ -234,6 +235,9 @@ class VideoService:
         return timelapse_files
 
     def produce_timelapse(self, dt: datetime.datetime, slot: int, read_only: bool, random_failure: bool) -> bool:
+        """Make a 3-hour timelapse for specific day and hourly slot.
+        Skip if timelapse exists, make a error file if generation failed or a video file if everything goes fine"""
+
         # Returns True if timelapse was actually generated
         timelapse_video_base = self._make_timelapse_video_base(dt, slot)
 
@@ -282,6 +286,9 @@ class VideoService:
                 f.write("Error: " + str(e) + "\n")
 
     def produce_daily_timelapse(self, date: datetime.date, read_only: bool, random_failure: bool) -> bool:
+        """Make a daily timelapse for specific day.
+        Skip if timelapse exists, make a error file if generation failed or a video file if everything goes fine"""
+
         # Returns True if timelapse was actually generated
         timelapse_video_base = self._make_timelapse_daily_video_base(date)
 
@@ -397,6 +404,10 @@ class VideoService:
         logger.info("Succeed")
 
     def check_timelapses(self, read_only: bool, random_failure: bool):
+        """Timelapse task.
+
+        Runs through raw files and run timelapse generation for each slot"""
+
         # set umask for current and child processes
         os.umask(0o007)
 
@@ -457,6 +468,7 @@ class VideoService:
                 if os.path.isfile(file)]
 
     def _generate_archive(self, date: datetime.date, hour: int, read_only: bool) -> bool:
+        """Produce an archive for a specified day and hour"""
         archive_video_base = self._make_archive_video_base(date, hour)
         archive_status_path = os.path.join(self.archive_path, archive_video_base + '.ok')
         archive_error_path = os.path.join(self.archive_path, archive_video_base + '.err')
@@ -567,6 +579,11 @@ class VideoService:
                               ExtraArgs={'StorageClass': self.config['BUCKET_STORAGE_CLASS']})
 
     def archive(self, read_only: bool):
+        """Archive task that make hourly videos and optionally uploads it to AWS S3.
+
+        Only slots earlier than 36 hours ago are considered.
+        Files are copied to TMP_PATH as well."""
+
         # set umask for current and child processes
         os.umask(0o007)
 
@@ -586,6 +603,8 @@ class VideoService:
                     return True
 
     def _find_stream_process(self) -> Optional[int]:
+        """Finds a ffmpeg process that receives RTSP.
+        Heuristics - process name, current user"""
         me = psutil.Process()
         username = me.username()
         target_pid = None
@@ -601,6 +620,11 @@ class VideoService:
         return target_pid
 
     def watchdog(self, use_process: bool, use_celery: bool):
+        """Watchdog task that watches after RTSP receiver.
+        Launched ffmpeg tends to stuck sometimes so we check if the chunk
+        time greatly differs from the current time.
+        If so, we kill the ffmpeg or celery task (choose at config)"""
+
         try:
             files = sorted([file for file in self._enumerate_raw_files()])
             if not files:
@@ -637,6 +661,9 @@ class VideoService:
             logging.error(str(e))
 
     def cleanup(self, read_only: bool):
+        """Cleanup task that removes archives that had been uploaded
+        to S3 a few hours ago. Fresh archives are stored locally"""
+
         tmp_archive_files = sorted([file for file
                                     in glob.glob(self.tmp_path + '/archive-*.mp4')
                                     if os.path.isfile(file)])
@@ -653,6 +680,8 @@ class VideoService:
                     logging.error(str(e))
 
     def receive(self, rtsp_source: Optional[str], task_id):
+        """Semi-infinite task that receives RTSP stream and saves
+        it to small ten-minute chunks to RAW_CAPTURE_PATH"""
         if not rtsp_source:
             return
 
@@ -690,6 +719,7 @@ class VideoService:
 
 
 class StatsService:
+    """Service for collecting statistics in a web-ready JSON using videoservice"""
     def __init__(self, redis):
         self._redis = redis
 

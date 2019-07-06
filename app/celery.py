@@ -4,6 +4,7 @@ from redis import Redis
 
 from app import Config, video_service, init_video_service
 
+# Celery global instance
 celery_app = Celery('parklapse',
                     broker=Config.REDIS_URL,
                     backend=Config.REDIS_URL,
@@ -14,6 +15,7 @@ celery_app.config_from_object(Config)
 
 @worker_process_init.connect
 def worker_process_init_handler(**_kwargs):
+    """Handler for worker initialization"""
     print('signal: worker process is ready')
 
     init_video_service(video_service, celery_app.conf)
@@ -24,6 +26,7 @@ def worker_process_init_handler(**_kwargs):
 
 @celery_app.on_after_configure.connect
 def setup_periodic_tasks(sender, **_kwargs):
+    """Handler for whole celery initialization"""
     print('Setup tasks')
     import app.tasks
     sender.add_periodic_task(60.0, app.tasks.timelapse_task.s(), name='timelapse_task',
@@ -39,4 +42,5 @@ def setup_periodic_tasks(sender, **_kwargs):
 
 
 if __name__ == '__main__':
+    # Celery entry point
     celery_app.start()
