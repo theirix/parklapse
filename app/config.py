@@ -22,3 +22,4 @@ class Config(metaclass=MetaFlaskEnv):
     ENABLE_WATCHDOG_PROCESS = False
     ENABLE_WATCHDOG_CELERY = False
     RTSP_SOURCE = None
+    UMASK = 0

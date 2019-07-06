@@ -409,7 +409,7 @@ class VideoService:
         Runs through raw files and run timelapse generation for each slot"""
 
         # set umask for current and child processes
-        os.umask(0o007)
+        os.umask(self.config['UMASK'])
 
         files = self._enumerate_raw_files()
         if len(files) < 2:
@@ -585,7 +585,7 @@ class VideoService:
         Files are copied to TMP_PATH as well."""
 
         # set umask for current and child processes
-        os.umask(0o007)
+        os.umask(self.config['UMASK'])
 
         dates = sorted(list({self._parse_raw_dt(file).date() for file in self._enumerate_raw_files()}))
         logging.info(f"Found raw files for {len(dates)} dates: {repr(dates)}")
@@ -688,7 +688,7 @@ class VideoService:
         self._redis.set('parklapse.receive.task_id', task_id)
 
         # set umask for current and child processes
-        os.umask(0o007)
+        os.umask(self.config['UMASK'])
 
         out_dir = os.path.join(self.raw_capture_path, 'capture-' + datetime.datetime.now().strftime('%Y%m%dT%H%M'))
         if not os.path.isdir(out_dir):
