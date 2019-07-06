@@ -5,7 +5,7 @@ import bleach
 import werkzeug.exceptions
 from flask import jsonify, Blueprint, current_app, request, redirect
 
-from app import video_service, limiter
+from app import video_service, limiter, redis_app
 from app.services import StatsService
 
 bp = Blueprint('api', __name__, url_prefix='/api')
@@ -33,7 +33,7 @@ def health():
 @bp.route('/stats', methods=['GET'])
 @limiter.limit("1 per second")
 def stats():
-    stats_dict = StatsService().collect_stats(video_service)
+    stats_dict = StatsService(redis_app).collect_stats(video_service)
     return jsonify(stats_dict)
 
 

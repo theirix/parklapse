@@ -1,11 +1,7 @@
 from celery.utils.log import get_task_logger
 
-from app import VideoService, init_video_service
+from app import video_service
 from app.celery import celery_app
-
-video_service = VideoService()
-
-init_video_service(video_service, celery_app.conf)
 
 
 @celery_app.task
@@ -51,13 +47,6 @@ def receive_task():
     logger = get_task_logger(receive_task.name)
     logger.info("Called receive_task")
 
-    from app import redis_app
-
-    class FakeApp:
-        config = celery_app.conf
-
-    redis_app.init_app(FakeApp)
     task_id = celery_app.current_task.request.id
-    redis_app.set('parklapse.receive.task_id', task_id)
 
-    video_service.receive(celery_app.conf['RTSP_SOURCE'])
+    video_service.receive(celery_app.conf['RTSP_SOURCE'], task_id)

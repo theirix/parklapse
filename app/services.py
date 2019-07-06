@@ -22,6 +22,10 @@ class VideoService:
     def __init__(self, *args):
         if args:
             self.init_config(*args)
+        self._redis = None
+
+    def init_app(self, redis):
+        self._redis = redis
 
     # noinspection PyAttributeOutsideInit
     def init_config(self, config,
@@ -592,8 +596,6 @@ class VideoService:
 
     def watchdog(self, use_process: bool, use_celery: bool):
         try:
-            from app import redis_app
-
             files = sorted([file for file in self._enumerate_raw_files()])
             if not files:
                 return
@@ -603,24 +605,24 @@ class VideoService:
             drift = abs(now - dt)
             logging.info(f"Drift {drift.seconds // 60} minutes")
 
-            bad_drift = abs(now - dt) > datetime.timedelta(minutes=12) or redis_app.get('parklapse.receive.stop')
+            bad_drift = abs(now - dt) > datetime.timedelta(minutes=12) or self._redis.get('parklapse.receive.stop')
             if bad_drift:
                 logging.info("Bad drift, need to stop receiver")
 
             if use_process:
                 target_pid = self._find_stream_process()
                 if bad_drift and target_pid:
-                    redis_app.incr('parklapse.watchdog.restarts')
+                    self._redis.incr('parklapse.watchdog.restarts')
                     logging.info(f'Found process {target_pid}')
                     os.kill(target_pid, signal.SIGKILL)
 
             if use_celery:
-                task_id_bytes = redis_app.get('parklapse.receive.task_id')  # type: bytes
+                task_id_bytes = self._redis.get('parklapse.receive.task_id')  # type: bytes
                 if bad_drift and task_id_bytes:
                     task_id = task_id_bytes.decode('latin-1')
                     logging.info(f'Found celery task {task_id}')
-                    redis_app.delete('parklapse.receive.stop')
-                    redis_app.incr('parklapse.watchdog.restarts')
+                    self._redis.delete('parklapse.receive.stop')
+                    self._redis.incr('parklapse.watchdog.restarts')
                     from app.celery import celery_app
                     celery_app.control.revoke(task_id, terminate=True)
 
@@ -644,9 +646,11 @@ class VideoService:
                 except OSError as e:
                     logging.error(str(e))
 
-    def receive(self, rtsp_source: Optional[str]):
+    def receive(self, rtsp_source: Optional[str], task_id):
         if not rtsp_source:
             return
+
+        self._redis.set('parklapse.receive.task_id', task_id)
 
         out_dir = os.path.join(self.raw_capture_path, 'capture-' + datetime.datetime.now().strftime('%Y%m%dT%H%M'))
         if not os.path.isdir(out_dir):
@@ -677,9 +681,10 @@ class VideoService:
 
 
 class StatsService:
-    def collect_stats(self, video_service: VideoService) -> dict:
-        from app import redis_app
+    def __init__(self, redis):
+        self._redis = redis
 
+    def collect_stats(self, video_service: VideoService) -> dict:
         stats = dict()
         stats['alive'] = True
         stats['stats_at'] = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
@@ -697,7 +702,7 @@ class StatsService:
             if video_service.timelapse_last_at():
                 stats['timelapse_last_at'] = video_service.timelapse_last_at().isoformat()
             stats["free_disk"] = (psutil.disk_usage(video_service.raw_capture_path).free // (1024 * 1024 * 1024))
-            stats["restarts"] = int(redis_app.get('parklapse.watchdog.restarts') or '0')
+            stats["restarts"] = int(self._redis.get('parklapse.watchdog.restarts') or '0')
         except Exception as e:
             logger.error("Exception happens: " + str(e))
             logger.exception(e)

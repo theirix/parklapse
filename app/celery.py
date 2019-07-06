@@ -1,6 +1,8 @@
 from celery import Celery
+from celery.signals import worker_process_init
+from redis import Redis
 
-from app import Config
+from app import Config, video_service, init_video_service
 
 celery_app = Celery('parklapse',
                     broker=Config.REDIS_URL,
@@ -8,6 +10,16 @@ celery_app = Celery('parklapse',
                     include=['app.tasks'])
 
 celery_app.config_from_object(Config)
+
+
+@worker_process_init.connect
+def worker_process_init_handler(**_kwargs):
+    print('signal: worker process is ready')
+
+    init_video_service(video_service, celery_app.conf)
+    redis = Redis.from_url(Config.REDIS_URL)
+
+    video_service.init_app(redis)
 
 
 @celery_app.on_after_configure.connect

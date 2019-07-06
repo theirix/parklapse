@@ -68,6 +68,7 @@ def create_app():
     app.logger.info("Starting app")
 
     init_video_service(video_service, app.config)
+    video_service.init_app(redis_app)
 
     limiter.init_app(app)
 
