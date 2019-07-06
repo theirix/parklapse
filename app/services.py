@@ -43,7 +43,7 @@ class VideoService:
         if not self.archive_path or not os.path.isdir(self.archive_path):
             raise RuntimeError('Bad archive_path')
         if not self.damaged_path or not os.path.isdir(self.damaged_path):
-            raise RuntimeError('Bad damaged')
+            raise RuntimeError('Bad damaged_path')
         if self.config['ENABLE_S3'] and not self.config['BUCKET_NAME']:
             raise RuntimeError('No bucket name')
 

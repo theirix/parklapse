@@ -10,9 +10,9 @@ def hello_task():
 
 
 @celery_app.task(ignore_result=True)
-def check_timelapse_task():
-    logger = get_task_logger(check_timelapse_task.name)
-    logger.info("Called check_timelapse_task")
+def timelapse_task():
+    logger = get_task_logger(timelapse_task.name)
+    logger.info("Called timelapse_task")
 
     video_service.check_timelapses(celery_app.conf['READ_ONLY'], False)
 
