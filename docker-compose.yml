@@ -6,6 +6,10 @@ version: '3'
 services:
   redis:
     image: redis
+    environment:
+      - REDIS_APPENDONLY=yes
+    volumes:
+      - redisdata:/data
 
   web:
     build: .
@@ -69,3 +73,6 @@ services:
       - ${VIDEODATA?err}:/var/lib/videodata:rw
     depends_on:
       - redis
+
+volumes:
+  redisdata:
