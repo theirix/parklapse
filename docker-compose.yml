@@ -1,7 +1,8 @@
 version: '3'
 
-# Required environment variables:
-# - VIDEODATA - host path where videodata is stored
+# Environment variables:
+# - VIDEODATA - required - host path where videodata is stored
+# - BIND_PORT - optional - host bind port for HTTP
 
 services:
   redis:
