@@ -27,13 +27,15 @@ def worker_process_init_handler(**_kwargs):
 @celery_app.on_after_configure.connect
 def setup_periodic_tasks(sender, **_kwargs):
     """Handler for whole celery initialization"""
+    # Avoid race by assuming that watchdog_task will be executed after receive_task started
+    # for at least ten seconds because otherwise it will kill it as non-productive
     print('Setup tasks')
     import app.tasks
     sender.add_periodic_task(60.0, app.tasks.timelapse_task.s(), name='timelapse_task',
                              queue='slow')
     sender.add_periodic_task(300.0, app.tasks.archive_task.s(), name='archive_task',
                              queue='slow')
-    sender.add_periodic_task(30.0, app.tasks.watchdog_task.s(), name='watchdog_task',
+    sender.add_periodic_task(90.0, app.tasks.watchdog_task.s(), name='watchdog_task',
                              queue='fast')
     sender.add_periodic_task(600.0, app.tasks.cleanup_task.s(), name='cleanup_task',
                              queue='slow')
