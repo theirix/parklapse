@@ -629,8 +629,11 @@ class VideoService:
             files = sorted([file for file in self._enumerate_raw_files()])
             if not files:
                 return
-            dt = self._parse_raw_dt(os.path.basename(files[-1]))
-            logging.info(f"Found last date {dt}")
+            stat_res = os.stat(files[-1])
+            # dt = self._parse_raw_dt(os.path.basename(files[-1]))
+            # use actual date not the filename date
+            dt = datetime.datetime.fromtimestamp(stat_res.st_mtime)
+            logging.info(f"Found last date {dt} for file {files[-1]}")
             now = datetime.datetime.now()
             drift = abs(now - dt)
             logging.info(f"Drift {drift.seconds // 60} minutes")
