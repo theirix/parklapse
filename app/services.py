@@ -593,7 +593,6 @@ class VideoService:
         dates = [date for date in dates
                  if abs(date - datetime.date.today()) > datetime.timedelta(hours=36)]
         logging.info(f"Remaining archive dates: {len(dates)}")
-        dates = dates[0:1]
         for date in dates:
             for hour in range(0, 24):
                 if self._generate_archive(date, hour, read_only):
