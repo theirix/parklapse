@@ -432,10 +432,13 @@ class VideoService:
             if dt.date() == now.date() and self._timelapse_slot(dt) == self._timelapse_slot(now):
                 logger.info("Skipping current slot")
             else:
-                if self.produce_timelapse(dt, self._timelapse_slot(dt), read_only, random_failure):
-                    logger.info("Sleeping after hourly timelapse for a minute")
-                    time.sleep(60)
-                    generated_slots_count += 1
+                if abs(now - last_dt) < datetime.timedelta(minutes=11):
+                    logger.info("Skipping because last file can be unfinished")
+                else:
+                    if self.produce_timelapse(dt, self._timelapse_slot(dt), read_only, random_failure):
+                        logger.info("Sleeping after hourly timelapse for a minute")
+                        time.sleep(60)
+                        generated_slots_count += 1
 
             dt = dt + datetime.timedelta(hours=1)
 
