@@ -396,12 +396,15 @@ class VideoService:
         command.extend(command_str.split(' '))
         command.extend([
             out_video_path])
+
+        start_time = time.perf_counter()
         logger.info("Launching: " + repr(command))
         res = subprocess.run(command, shell=False, check=False,
                              stdout=None, stderr=subprocess.PIPE)
         if res.returncode != 0:
             raise RuntimeError('Recode failed ' + str(res.stderr.decode('latin-1')))
-        logger.info("Succeed")
+        elapsed = time.perf_counter() - start_time
+        logger.info("Succeed in {:.1f} seconds".format(elapsed))
 
     def check_timelapses(self, read_only: bool, random_failure: bool):
         """Timelapse task.
@@ -545,12 +548,14 @@ class VideoService:
                 logger.info("Pretending to launch: " + " ".join(command))
                 return True
 
+            start_time = time.perf_counter()
             logger.info("Launching: " + " ".join(command))
             res = subprocess.run(command, shell=False, check=False,
                                  stdout=None, stderr=subprocess.PIPE)
             if res.returncode != 0:
                 raise RuntimeError('Remux failed ' + str(res.stderr.decode('latin-1')))
-            logger.info("Succeed")
+            elapsed = time.perf_counter() - start_time
+            logger.info("Succeed in {:.1f} seconds".format(elapsed))
 
             if not self._is_good_video(archive_video_path):
                 raise RuntimeError('Archive video is not so good')
