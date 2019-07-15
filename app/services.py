@@ -467,6 +467,13 @@ class VideoService:
                 in sorted(glob.glob(self.timelapse_path + '/timelapse-daily-*.mp4'))
                 if os.path.isfile(file)]
 
+    def _is_archive_done(self, date: datetime.date, hour: int) -> bool:
+        archive_video_base = self._make_archive_video_base(date, hour)
+        archive_status_path = os.path.join(self.archive_path, archive_video_base + '.ok')
+        archive_error_path = os.path.join(self.archive_path, archive_video_base + '.err')
+
+        return os.path.isfile(archive_status_path) or os.path.isfile(archive_error_path)
+
     def _generate_archive(self, date: datetime.date, hour: int, read_only: bool) -> bool:
         """Produce an archive for a specified day and hour"""
         archive_video_base = self._make_archive_video_base(date, hour)
@@ -593,6 +600,13 @@ class VideoService:
         dates = [date for date in dates
                  if abs(date - datetime.date.today()) > datetime.timedelta(hours=36)]
         logging.info(f"Remaining archive dates: {len(dates)}")
+
+        remaining_count = len([1
+                               for date in dates
+                               for hour in range(0, 24)
+                               if not self._is_archive_done(date, hour)])
+        logging.info(f"Remaining archive files: {remaining_count}")
+
         for date in dates:
             for hour in range(0, 24):
                 if self._generate_archive(date, hour, read_only):
@@ -722,6 +736,7 @@ class VideoService:
 
 class StatsService:
     """Service for collecting statistics in a web-ready JSON using videoservice"""
+
     def __init__(self, redis):
         self._redis = redis
 
