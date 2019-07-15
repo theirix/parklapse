@@ -1,4 +1,4 @@
-FROM python:3.7-stretch
+FROM python:3.7-buster
 
 ENV TZ Europe/Moscow
 ENV PYTHONUNBUFFERED 1
