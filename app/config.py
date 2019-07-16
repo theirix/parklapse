@@ -24,3 +24,4 @@ class Config(metaclass=MetaFlaskEnv):
     RTSP_SOURCE = None
     UMASK = 0
     ENABLE_ARCHIVE_COMPRESSION = True
+    MAX_DRIFT = 12

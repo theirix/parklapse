@@ -670,7 +670,9 @@ class VideoService:
             drift = abs(now - dt)
             logging.info(f"Drift {drift.seconds // 60} minutes")
 
-            bad_drift = abs(now - dt) > datetime.timedelta(minutes=12) or self._redis.get('parklapse.receive.stop')
+            max_drift_min = self.config['MAX_DRIFT']
+            bad_drift = abs(now - dt) > datetime.timedelta(minutes=max_drift_min) or self._redis.get(
+                'parklapse.receive.stop')
             if bad_drift:
                 logging.info("Bad drift, need to stop receiver")
 
