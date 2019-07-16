@@ -22,7 +22,8 @@ def archive_task():
     logger = get_task_logger(archive_task.name)
     logger.info("Called archive_task")
 
-    video_service.archive(celery_app.conf['READ_ONLY'])
+    video_service.archive(celery_app.conf['READ_ONLY'],
+                          celery_app.conf['ENABLE_ARCHIVE_COMPRESSION'])
 
 
 @celery_app.task(ignore_result=True)

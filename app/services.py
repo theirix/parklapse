@@ -480,7 +480,7 @@ class VideoService:
 
         return os.path.isfile(archive_status_path) or os.path.isfile(archive_error_path)
 
-    def _generate_archive(self, date: datetime.date, hour: int, read_only: bool) -> bool:
+    def _generate_archive(self, date: datetime.date, hour: int, read_only: bool, enable_compression: bool) -> bool:
         """Produce an archive for a specified day and hour"""
         archive_video_base = self._make_archive_video_base(date, hour)
         archive_status_path = os.path.join(self.archive_path, archive_video_base + '.ok')
@@ -513,36 +513,47 @@ class VideoService:
             logging.info("Files are: " + repr(files))
             logging.info("Target is: " + archive_video_path)
 
-            command = [os.path.join(self.local_bin(), 'ffmpeg'),
-                       '-hide_banner',
-                       '-nostdin',
-                       '-threads',
-                       '1']
-            # ffmpeg -i out-20190604T1706.mp4  -i out-20190604T1716.mp4  -filter_complex \
-            # "[0:v:0]fps=8,scale=1280:720,format=yuvj420p[v0];\
-            # [1:v:0]fps=8,scale=1280:720,format=yuvj420p[v1];\
-            # [v0][v1]concat=n=2:v=1[outv]" \
-            # -map "[outv]" -c:v libx264 -crf 26 -maxrate 1000K -bufsize 1600K output.mp4
-            for file in files:
-                command.extend(['-i',
-                                file])
-            filter_expr = ''
-            filter_expr += ''.join([str(f'[{m}:v:0]fps=12,scale=1280:720,format=yuvj420p[v{m}];')
-                                    for m, _ in enumerate(files)])
-            filter_expr += ''.join([str(f'[v{m}]')
-                                    for m, _ in enumerate(files)])
-            filter_expr += f'concat=n={len(files)}:v=1[outv]'
-            command.extend(['-filter_complex',
-                            filter_expr,
-                            '-map',
-                            '[outv]'])
-            # expr = '-c:v libx264 -crf 26 -maxrate 1000K -bufsize 1600K'
-            # expr = '-c:v libx264 -crf 24 -maxrate 1200K -bufsize 1700K'
-            expr = self.config['ARCHIVE_FFMPEG_ADJUSTMENTS']
-            if not expr:
-                raise RuntimeError('No archive ffmpeg string')
-            command.extend(expr.split(' '))
-            command.extend([archive_video_path])
+            if enable_compression:
+                command = [os.path.join(self.local_bin(), 'ffmpeg'),
+                           '-hide_banner',
+                           '-nostdin',
+                           '-threads',
+                           '1']
+                # ffmpeg -i out-20190604T1706.mp4  -i out-20190604T1716.mp4  -filter_complex \
+                # "[0:v:0]fps=8,scale=1280:720,format=yuvj420p[v0];\
+                # [1:v:0]fps=8,scale=1280:720,format=yuvj420p[v1];\
+                # [v0][v1]concat=n=2:v=1[outv]" \
+                # -map "[outv]" -c:v libx264 -crf 26 -maxrate 1000K -bufsize 1600K output.mp4
+                for file in files:
+                    command.extend(['-i',
+                                    file])
+                filter_expr = ''
+                filter_expr += ''.join([str(f'[{m}:v:0]fps=12,scale=1280:720,format=yuvj420p[v{m}];')
+                                        for m, _ in enumerate(files)])
+                filter_expr += ''.join([str(f'[v{m}]')
+                                        for m, _ in enumerate(files)])
+                filter_expr += f'concat=n={len(files)}:v=1[outv]'
+                command.extend(['-filter_complex',
+                                filter_expr,
+                                '-map',
+                                '[outv]'])
+                # expr = '-c:v libx264 -crf 26 -maxrate 1000K -bufsize 1600K'
+                # expr = '-c:v libx264 -crf 24 -maxrate 1200K -bufsize 1700K'
+                expr = self.config['ARCHIVE_FFMPEG_ADJUSTMENTS']
+                if not expr:
+                    raise RuntimeError('No archive ffmpeg string')
+                command.extend(expr.split(' '))
+                command.extend([archive_video_path])
+            else:
+                command = [os.path.join(self.local_bin(), 'mkvmerge')]
+                for file in files:
+                    command.append(file)
+                    command.append('+')
+                command.pop()
+                command.extend([
+                    '--quiet',
+                    '-o',
+                    archive_video_path])
 
             if read_only:
                 logger.info("Pretending to launch: " + " ".join(command))
@@ -593,7 +604,7 @@ class VideoService:
         s3_client.upload_file(path, self.config['BUCKET_NAME'], name,
                               ExtraArgs={'StorageClass': self.config['BUCKET_STORAGE_CLASS']})
 
-    def archive(self, read_only: bool):
+    def archive(self, read_only: bool, enable_compression: bool):
         """Archive task that make hourly videos and optionally uploads it to AWS S3.
 
         Only slots earlier than 36 hours ago are considered.
@@ -617,7 +628,7 @@ class VideoService:
 
         for date in dates:
             for hour in range(0, 24):
-                if self._generate_archive(date, hour, read_only):
+                if self._generate_archive(date, hour, read_only, enable_compression):
                     # yield queue time to other tasks
                     logger.info("Sleeping after archive for a minute")
                     time.sleep(60)

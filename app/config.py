@@ -23,3 +23,4 @@ class Config(metaclass=MetaFlaskEnv):
     ENABLE_WATCHDOG_CELERY = False
     RTSP_SOURCE = None
     UMASK = 0
+    ENABLE_ARCHIVE_COMPRESSION = True
