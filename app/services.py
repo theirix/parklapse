@@ -269,7 +269,7 @@ class VideoService:
                 good, reason = self._is_good_video(slot_file)
                 if good:
                     good_slot_files.append(slot_file)
-                else:
+                elif not read_only:
                     logger.error(f"Bad video {slot_file}: {reason}, move out")
                     shutil.move(slot_file, self.damaged_path)
 
@@ -404,7 +404,7 @@ class VideoService:
         if res.returncode != 0:
             raise RuntimeError('Recode failed ' + str(res.stderr.decode('latin-1')))
         elapsed = time.perf_counter() - start_time
-        logger.info("Succeed in {:.1f} seconds".format(elapsed))
+        logger.info("Succeed timelapse in {} minutes".format(elapsed // 60))
 
     def check_timelapses(self, read_only: bool, random_failure: bool):
         """Timelapse task.
@@ -566,7 +566,7 @@ class VideoService:
             if res.returncode != 0:
                 raise RuntimeError('Remux failed ' + str(res.stderr.decode('latin-1')))
             elapsed = time.perf_counter() - start_time
-            logger.info("Succeed in {:.1f} seconds".format(elapsed))
+            logger.info("Succeed archive in {} minutes".format(elapsed // 60))
 
             if not self._is_good_video(archive_video_path):
                 raise RuntimeError('Archive video is not so good')
