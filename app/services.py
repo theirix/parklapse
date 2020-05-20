@@ -50,7 +50,8 @@ class VideoService:
 
     def _enumerate_raw_files(self) -> list:
         return list(sorted(file for file
-                           in glob.glob(self.raw_capture_path + '/*/*.mp4')
+                           in glob.glob(self.raw_capture_path + '/*/*.mp4') +
+                           glob.glob(self.raw_capture_path + '/*/*.mkv')
                            if os.path.isfile(file)))
 
     def raw_count(self):
@@ -59,7 +60,7 @@ class VideoService:
     @staticmethod
     def _parse_raw_dt(fname: str) -> datetime.datetime:
         # out-20190602T1705.mp4
-        m = re.match(r'out-(.*)\.mp4', os.path.basename(fname))
+        m = re.match(r'out-(.*)\.(mp4|mkv)', os.path.basename(fname))
         if not m:
             raise ValueError('Wrong filename')
         return datetime.datetime.strptime(m.group(1), "%Y%m%dT%H%M")
@@ -67,7 +68,7 @@ class VideoService:
     @staticmethod
     def _parse_timelapse_to_date_and_slot(fname: str) -> (datetime.date, int):
         # timelapse-slots-20190602_3.mp4
-        m = re.match(r'timelapse-slots-(\d+)_(\d)\.mp4', os.path.basename(fname))
+        m = re.match(r'timelapse-slots-(\d+)_(\d)\.(mp4|mkv)', os.path.basename(fname))
         if not m:
             raise ValueError('Wrong filename ' + fname)
         date = datetime.datetime.strptime(m.group(1), "%Y%m%d").date()
@@ -78,7 +79,7 @@ class VideoService:
     @staticmethod
     def _parse_timelapse_daily_to_date(fname: str) -> datetime.date:
         # timelapse-daily-20190602.mp4
-        m = re.match(r'timelapse-daily-(\d+)\.mp4', os.path.basename(fname))
+        m = re.match(r'timelapse-daily-(\d+)\.(mp4|mkv)', os.path.basename(fname))
         if not m:
             raise ValueError('Wrong filename ' + fname)
         dt = datetime.datetime.strptime(m.group(1), "%Y%m%d").date()
@@ -99,12 +100,14 @@ class VideoService:
 
     def timelapses_slots_count(self):
         return len([file for file
-                    in glob.glob(self.timelapse_path + '/timelapse-slots-*.mp4')
+                    in glob.glob(self.timelapse_path + '/timelapse-slots-*.mp4') +
+                    glob.glob(self.timelapse_path + '/timelapse-slots-*.mkv')
                     if os.path.isfile(file)])
 
     def timelapses_daily_count(self):
         return len([file for file
-                    in glob.glob(self.timelapse_path + '/timelapse-daily-*.mp4')
+                    in glob.glob(self.timelapse_path + '/timelapse-daily-*.mp4') +
+                    glob.glob(self.timelapse_path + '/timelapse-daily-*.mkv')
                     if os.path.isfile(file)])
 
     def archives_count(self):
@@ -119,7 +122,8 @@ class VideoService:
 
     def timelapse_last_file(self):
         files = sorted([file for file
-                        in glob.glob(self.timelapse_path + '/timelapse-slots-*.mp4')
+                        in glob.glob(self.timelapse_path + '/timelapse-slots-*.mp4') +
+                        glob.glob(self.timelapse_path + '/timelapse-slots-*.mkv')
                         if os.path.isfile(file)])
         if not files:
             return None
@@ -127,7 +131,8 @@ class VideoService:
 
     def timelapse_last_at(self):
         files = sorted([file for file
-                        in glob.glob(self.timelapse_path + '/timelapse-slots-*.mp4')
+                        in glob.glob(self.timelapse_path + '/timelapse-slots-*.mp4') +
+                        glob.glob(self.timelapse_path + '/timelapse-slots-*.mkv')
                         if os.path.isfile(file)])
         if not files:
             return None
@@ -144,7 +149,8 @@ class VideoService:
 
     def get_timelapses_for_slot(self, date: datetime.date, slot: int) -> Optional[str]:
         files = sorted([file for file
-                        in glob.glob(self.timelapse_path + '/timelapse-slots-*.mp4')
+                        in glob.glob(self.timelapse_path + '/timelapse-slots-*.mp4') +
+                        glob.glob(self.timelapse_path + '/timelapse-slots-*.mkv')
                         if os.path.isfile(file) and
                         self._parse_timelapse_to_date_and_slot(file) == (date, slot)])
         if not files:
@@ -155,7 +161,8 @@ class VideoService:
 
     def get_timelapses_for_date(self, date: datetime.date) -> Optional[str]:
         files = sorted([file for file
-                        in glob.glob(self.timelapse_path + '/timelapse-daily-*.mp4')
+                        in glob.glob(self.timelapse_path + '/timelapse-daily-*.mp4') +
+                        glob.glob(self.timelapse_path + '/timelapse-daily-*.mkv')
                         if os.path.isfile(file) and
                         self._parse_timelapse_daily_to_date(file) == date])
         if not files:
@@ -224,7 +231,8 @@ class VideoService:
 
     def _deduce_timelapses_for_day(self, date: datetime.date) -> Optional[list]:
         timelapse_files = sorted([file for file in
-                                  glob.glob(self.timelapse_path + '/timelapse-slots-*.mp4')
+                                  glob.glob(self.timelapse_path + '/timelapse-slots-*.mp4') +
+                                  glob.glob(self.timelapse_path + '/timelapse-slots-*.mkv')
                                   if os.path.isfile(file) and
                                   self._parse_timelapse_to_date_and_slot(file)[0] == date])
         if len(timelapse_files) < 1:
@@ -292,7 +300,7 @@ class VideoService:
         # Returns True if timelapse was actually generated
         timelapse_video_base = self._make_timelapse_daily_video_base(date)
 
-        timelapse_video_name = timelapse_video_base + '.mp4'
+        timelapse_video_name = timelapse_video_base + '.mkv'
         timelapse_err_name = timelapse_video_base + '.err'
         try:
             if os.path.isfile(os.path.join(self.timelapse_path, timelapse_video_name)):
@@ -470,7 +478,8 @@ class VideoService:
     def provide_timelapse_daily(self) -> list:
         return [(file, self._parse_timelapse_daily_to_date(file))
                 for file
-                in sorted(glob.glob(self.timelapse_path + '/timelapse-daily-*.mp4'))
+                in sorted(glob.glob(self.timelapse_path + '/timelapse-daily-*.mp4') +
+                          glob.glob(self.timelapse_path + '/timelapse-daily-*.mkv'))
                 if os.path.isfile(file)]
 
     def _is_archive_done(self, date: datetime.date, hour: int) -> bool:
@@ -485,7 +494,8 @@ class VideoService:
         archive_video_base = self._make_archive_video_base(date, hour)
         archive_status_path = os.path.join(self.archive_path, archive_video_base + '.ok')
         archive_error_path = os.path.join(self.archive_path, archive_video_base + '.err')
-        archive_video_path = os.path.join(self.archive_path, archive_video_base + '.mp4')
+        extension = '.mp4' if enable_compression else '.mkv'
+        archive_video_path = os.path.join(self.archive_path, archive_video_base + extension)
 
         if os.path.isfile(archive_status_path):
             # logging.info("Already done")
@@ -572,7 +582,7 @@ class VideoService:
                 raise RuntimeError('Archive video is not so good')
 
             if self.config.get('ENABLE_S3', False):
-                self._upload_to_s3(archive_video_base + '.mp4', archive_video_path)
+                self._upload_to_s3(archive_video_base + extension, archive_video_path)
                 logger.info("Uploaded to s3")
 
             shutil.move(archive_video_path, self.tmp_path)
@@ -643,9 +653,9 @@ class VideoService:
         for proc in psutil.process_iter(attrs=['pid', 'cmdline', 'username']):
             try:
                 if proc.username() == username and \
-                        proc.cmdline() and \
-                        'ffmpeg' in proc.cmdline() and \
-                        '-rtsp_transport' in proc.cmdline():
+                    proc.cmdline() and \
+                    'ffmpeg' in proc.cmdline() and \
+                    '-rtsp_transport' in proc.cmdline():
                     target_pid = proc.pid
             except psutil.Error:
                 pass
@@ -702,7 +712,8 @@ class VideoService:
         to S3 a few hours ago. Fresh archives are stored locally"""
 
         tmp_archive_files = sorted([file for file
-                                    in glob.glob(self.tmp_path + '/archive-*.mp4')
+                                    in glob.glob(self.tmp_path + '/archive-*.mp4') +
+                                    glob.glob(self.tmp_path + '/archive-*.mkv')
                                     if os.path.isfile(file)])
         keep = int(self.config['KEEP_ARCHIVE_FILES'])
         # leave only 'keep' last files, sorted array
